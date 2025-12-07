@@ -363,6 +363,65 @@
       </div>
     </div>
 
+        <!-- POLJA ZA ODGOVORE (sakrivena dok igra ne krene) -->
+    <div id="game-fields" class="game-section" style="display:none; margin-top:16px;">
+      <h3 style="font-size:1.1rem; margin-bottom:12px; color:#111827;">Runda 1 - Slovo: <span id="current-letter" style="font-size:1.4rem; font-weight:700;">?</span></h3>
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+        <div class="field">
+          <label>Država</label>
+          <input type="text" id="drzava" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Grad</label>
+          <input type="text" id="grad" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Selo / mjesto</label>
+          <input type="text" id="selo" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Rijeka</label>
+          <input type="text" id="rijeka" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Planina / brdo</label>
+          <input type="text" id="planina" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Životinja</label>
+          <input type="text" id="zivotinja" autocomplete="off">
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="field">
+          <label>Biljka</label>
+          <input type="text" id="biljka" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Stvar / pojam</label>
+          <input type="text" id="stvar" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Boja</label>
+          <input type="text" id="boja" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Zanimanje</label>
+          <input type="text" id="zanimanje" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Ime</label>
+          <input type="text" id="ime" autocomplete="off">
+        </div>
+      </div>
+
+      <button id="submit-answers" class="btn btn-primary" style="margin-top:16px; width:100%;">
+        Predaj odgovore
+      </button>
+    </div>
+
     <button id="logout-btn" class="btn btn-secondary" style="margin-top:14px;">
       Natrag na prijavu
     </button>
