@@ -258,7 +258,12 @@
           updateCountdownDisplay();
           clearInterval(countdownInterval);
           countdownInterval = null;
-          alert("Igra počinje! (u sljedećem koraku dodajemo polja za igru)");
+          alert("Igra počinje!");
+          
+          // PRIKAŽI POLJA ZA ODGOVORE
+          document.getElementById("game-fields").style.display = "block";
+          document.getElementById("current-letter").textContent = "A"; // privremeno slovo A
+
         } else {
           updateCountdownDisplay();
         }
@@ -314,6 +319,50 @@
       isAdmin = false;
       loginInput.value = "";
       showScreen("login");
+    });
+    
+    // --- SLANJE ODGOVORA ---
+    const submitBtn = document.getElementById("submit-answers");
+    const currentRoundRef = ref(db, `rooms/${ROOM_ID}/rounds/1`);
+
+    submitBtn.addEventListener("click", async () => {
+      if (!currentUserName) {
+        alert("Nisi prijavljen!");
+        return;
+      }
+
+      const answers = {
+        drzava: document.getElementById("drzava").value.trim(),
+        grad: document.getElementById("grad").value.trim(),
+        selo: document.getElementById("selo").value.trim(),
+        rijeka: document.getElementById("rijeka").value.trim(),
+        planina: document.getElementById("planina").value.trim(),
+        zivotinja: document.getElementById("zivotinja").value.trim(),
+        biljka: document.getElementById("biljka").value.trim(),
+        stvar: document.getElementById("stvar").value.trim(),
+        boja: document.getElementById("boja").value.trim(),
+        zanimanje: document.getElementById("zanimanje").value.trim(),
+        ime: document.getElementById("ime").value.trim(),
+        submittedAt: Date.now()
+      };
+
+      const playerKey = safeKey(currentUserName);
+      const answersRef = ref(db, `rooms/${ROOM_ID}/rounds/1/${playerKey}`);
+
+      try {
+        await set(answersRef, {
+          name: currentUserName,
+          letter: "A",
+          answers,
+          submittedAt: Date.now()
+        });
+        alert("Odgovori su poslani!");
+        
+        document.querySelectorAll("#game-fields input").forEach(input => input.value = "");
+      } catch (e) {
+        console.error(e);
+        alert("Greška pri slanju odgovora.");
+      }
     });
 
 
