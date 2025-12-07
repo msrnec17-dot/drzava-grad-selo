@@ -243,26 +243,16 @@
       const m = String(Math.floor(countdownRemaining / 60)).padStart(2, "0");
       const s = String(countdownRemaining % 60).padStart(2, "0");
       countdownEl.textContent = `${m}:${s}`;
-    }
+       // --- GLASANJE ODGOVORA ---
+    const votingPanel = document.getElementById("voting-panel");
+    const votingTable = document.getElementById("voting-table");
+    const votingStats = document.getElementById("voting-stats");
+    const roundsRef = ref(db, `rooms/${ROOM_ID}/rounds/1`);
+    const votesRef = ref(db, `rooms/${ROOM_ID}/votes/1`);
+    const scoresRef = ref(db, `rooms/${ROOM_ID}/scores`);
 
-    function startCountdown() {
-      countdownRemaining = 15;
-      updateCountdownDisplay();
-      timerBox.style.display = "inline-flex";
-
-      if (countdownInterval) clearInterval(countdownInterval);
-      countdownInterval = setInterval(() => {
-        countdownRemaining--;
-        if (countdownRemaining <= 0) {
-          countdownRemaining = 0;
-          updateCountdownDisplay();
-          clearInterval(countdownInterval);
-          countdownInterval = null;
-          alert("Igra počinje!");
-          
-          // PRIKAŽI POLJA ZA ODGOVORE
-          document.getElementById("game-fields").style.display = "block";
-          document.getElementById("current-letter").textContent = "A"; // privremeno slovo A
+    onValue(roundsRef, (snap) => {
+      const roundData
 
         } else {
           updateCountdownDisplay();
