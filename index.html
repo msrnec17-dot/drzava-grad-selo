@@ -1,729 +1,121 @@
 <!DOCTYPE html>
 <html lang="hr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Država – grad – selo (ručno bodovanje, 7 rundi)</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
-        }
-        .app {
-            background: #ffffff;
-            max-width: 1000px;
-            width: 100%;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
-            padding: 20px 22px 24px;
-        }
-        h1 {
-            font-size: 1.6rem;
-            margin-bottom: 4px;
-            text-align: center;
-            color: #111827;
-        }
-        .subtitle {
-            text-align: center;
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin-bottom: 16px;
-        }
-        .top-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .letter-box, .timer-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 12px;
-        }
-        .letter-box { background: #eef2ff; }
-        .timer-box { background: #fee2e2; }
-        .letter-label, .timer-label {
-            font-size: 0.8rem;
-            color: #4b5563;
-        }
-        .letter-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #111827;
-            min-width: 56px;
-            text-align: center;
-        }
-        .timer-value {
-            font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #b91c1c;
-            min-width: 70px;
-            text-align: center;
-        }
-        .btn {
-            border: none;
-            border-radius: 999px;
-            padding: 7px 14px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        .btn-primary {
-            background: #4f46e5;
-            color: white;
-            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
-        }
-        .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #111827;
-        }
-        .btn-secondary:hover { background: #d1d5db; }
-
-        .name-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .name-row input[type="text"] {
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid #d1d5db;
-            font-size: 0.9rem;
-            flex: 1;
-            min-width: 140px;
-        }
-        .hint {
-            font-size: 0.78rem;
-            color: #9ca3af;
-            margin-bottom: 6px;
-        }
-        .categories {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 12px;
-            margin-bottom: 12px;
-        }
-        @media (max-width: 600px) {
-            .categories { grid-template-columns: 1fr; }
-        }
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .field label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #6b7280;
-        }
-        .field input[type="text"] {
-            border-radius: 999px;
-            border: 1px solid #d1d5db;
-            padding: 6px 9px;
-            font-size: 0.9rem;
-        }
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .results {
-            border-radius: 12px;
-            background: #f9fafb;
-            padding: 10px 12px;
-            border: 1px dashed #e5e7eb;
-            font-size: 0.9rem;
-            color: #374151;
-        }
-        .results-title {
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: #111827;
-        }
-        .grid-wrapper {
-            overflow-x: auto;
-            margin-top: 6px;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            min-width: 720px;
-            font-size: 0.85rem;
-        }
-        th, td {
-            border: 1px solid #e5e7eb;
-            padding: 4px 6px;
-            text-align: left;
-        }
-        th {
-            background: #f3f4f6;
-            font-weight: 600;
-            color: #374151;
-            text-align: center;
-        }
-        th.category {
-            text-align: left;
-            width: 160px;
-        }
-        .check-cell {
-            text-align: center;
-            font-size: 0.8rem;
-        }
-        .check-cell input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-        }
-        .scoreboard {
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid #e5e7eb;
-        }
-        .score-row {
-            font-size: 0.9rem;
-            margin-bottom: 3px;
-        }
-        .score-row span.place {
-            display: inline-block;
-            min-width: 22px;
-            font-weight: 600;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Država – grad – selo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+    .app {
+      background: #ffffff;
+      max-width: 900px;
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+      padding: 22px 22px 26px;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+      text-align: center;
+      color: #111827;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.95rem;
+      color: #6b7280;
+      margin-bottom: 18px;
+    }
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    label {
+      font-size: 0.9rem;
+      color: #374151;
+    }
+    input[type="text"] {
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 8px 11px;
+      font-size: 0.95rem;
+    }
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+    }
+    .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .info {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    .welcome {
+      font-size: 1rem;
+      margin-bottom: 10px;
+      color: #111827;
+    }
+    .game-placeholder {
+      font-size: 0.9rem;
+      color: #4b5563;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f9fafb;
+      border: 1px dashed #e5e7eb;
+    }
+  </style>
 </head>
 <body>
 <div class="app">
-    <h1>Država – grad – selo (ručno bodovanje, 7 rundi)</h1>
-    <p class="subtitle">
-        Najviše 7 rundi. Svi imaju isto slovo. Voditelj ručno potvrđuje točne odgovore (kvačice),
-        svaka kvačica je 1 bod. Nakon svake runde vidi se ljestvica.
+  <h1>Država – grad – selo</h1>
+  <p class="subtitle">Online verzija s prijavom igrača</p>
+
+  <!-- EKRAN 1: LOGIN -->
+  <div id="login-screen" class="screen active">
+    <div class="field">
+      <label for="login-name">Upiši svoje ime:</label>
+      <input type="text" id="login-name" placeholder="Npr. Marko, Ana..." autocomplete="off">
+    </div>
+    <button id="login-btn" class="btn btn-primary">Uđi u igru</button>
+    <p class="info">
+      Nakon što potvrdiš ime, otvara se stranica za igru. Ime se koristi za bodove i prikaz u tablici.
     </p>
+  </div>
 
-    <div class="top-row">
-        <div class="letter-box">
-            <div>
-                <div class="letter-label">Slovo runde (svima isto)</div>
-                <div class="letter-value" id="current-letter">?</div>
-                <div class="letter-label" style="font-size:0.75rem;" id="round-info">Runda: 0 / 7</div>
-            </div>
-            <button id="new-letter" class="btn btn-primary">
-                Nova runda (slovo)
-            </button>
-        </div>
-
-        <div class="timer-box">
-            <div>
-                <div class="timer-label">Tvoj timer (90 s)</div>
-                <div class="timer-value" id="timer">01:30</div>
-            </div>
-            <button id="start-timer" class="btn btn-secondary">
-                Start / reset
-            </button>
-        </div>
-    </div>
-
-       <div class="name-row">
-        <input type="text" id="player-name" placeholder="Tvoje ime (obavezno)">
-        <button id="login-btn" class="btn btn-secondary">Prijavi se u igru</button>
-        <button id="submit-answers" class="btn btn-primary" disabled>Predaj odgovore za ovu rundu</button>
-    </div>
-
-
-        <div class="results" style="margin-top:10px; margin-bottom:10px;">
-        <div class="results-title">Prijavljeni igrači</div>
-        <p style="font-size:0.8rem; color:#6b7280;">
-            Svatko mora upisati ime. Kada se prijavi, pojavi se na listi.
-        </p>
-        <div class="grid-wrapper">
-            <table id="players-table">
-                <thead>
-                    <tr>
-                        <th style="width:40px;">#</th>
-                        <th>Igrač</th>
-                    </tr>
-                </thead>
-                <tbody id="players-body">
-                    <!-- igrači će se puniti iz JavaScripta -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-
-    <p class="hint">
-        Voditelj pokrene „Nova runda (slovo)“. Svi vide isto slovo, pokrenu timer, pišu 90 s i predaju odgovore.
-        Zatim voditelj označi kvačice i klikne „Spremi bodove ove runde“.
-    </p>
-
-    <div class="categories">
-        <div class="field">
-            <label for="drzava">Država</label>
-            <input type="text" id="drzava" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="grad">Grad</label>
-            <input type="text" id="grad" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="selo">Selo / mjesto</label>
-            <input type="text" id="selo" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="rijeka">Rijeka</label>
-            <input type="text" id="rijeka" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="planina">Planina / brdo</label>
-            <input type="text" id="planina" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="zivotinja">Životinja</label>
-            <input type="text" id="zivotinja" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="biljka">Biljka</label>
-            <input type="text" id="biljka" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="stvar">Stvar / pojam</label>
-            <input type="text" id="stvar" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="boja">Boja</label>
-            <input type="text" id="boja" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="zanimanje">Zanimanje</label>
-            <input type="text" id="zanimanje" autocomplete="off">
-        </div>
-        <div class="field">
-            <label for="ime">Ime</label>
-            <input type="text" id="ime" autocomplete="off">
-        </div>
-    </div>
-
-    <div class="actions">
-        <button id="save-round" class="btn btn-primary">Spremi bodove ove runde</button>
-        <button id="refresh-results" class="btn btn-secondary">Osvježi tablicu i ljestvicu</button>
-        <span class="hint">Voditelj označi kvačice u tablici pa klikne „Spremi bodove ove runde“.</span>
-    </div>
-
-    <div class="results" id="results">
-        <div class="results-title">Odgovori i ljestvica</div>
-        <p style="font-size:0.8rem; color:#6b7280;">
-            Nakon runde klikni „Osvježi tablicu i ljestvicu“ da vidiš odgovore. Kvačice = točni odgovori, svaka 1 bod.
-        </p>
-    </div>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"; /* [web:24][web:39] */
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
-  authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
-  databaseURL: "https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "drzava-grad-selo-8d986",
-  storageBucket: "drzava-grad-selo-8d986.firebasestorage.app",
-  messagingSenderId: "499006072662",
-  appId: "1:499006072662:web:3001f6700f0268df1b58f7"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const ROOM_ID = "drzavaGradSeloSoba1";
-const MAX_ROUNDS = 7;
-
-const letters = [
-    "A","B","C","Č","Ć","D","Đ","E","F","G",
-    "H","I","J","K","L","LJ","M","N","NJ",
-    "O","P","R","S","Š","T","U","V","Z","Ž"
-];
-
-const categories = [
-    { id: "drzava",    label: "Država" },
-    { id: "grad",      label: "Grad" },
-    { id: "selo",      label: "Selo / mjesto" },
-    { id: "rijeka",    label: "Rijeka" },
-    { id: "planina",   label: "Planina / brdo" },
-    { id: "zivotinja", label: "Životinja" },
-    { id: "biljka",    label: "Biljka" },
-    { id: "stvar",     label: "Stvar / pojam" },
-    { id: "boja",      label: "Boja" },
-    { id: "zanimanje", label: "Zanimanje" },
-    { id: "ime",       label: "Ime" }
-];
-
-const currentLetterEl = document.getElementById("current-letter");
-const roundInfoEl     = document.getElementById("round-info");
-const newLetterBtn    = document.getElementById("new-letter");
-const timerEl         = document.getElementById("timer");
-const startTimerBtn   = document.getElementById("start-timer");
-const playerNameEl    = document.getElementById("player-name");
-const loginBtn        = document.getElementById("login-btn");
-const submitBtn       = document.getElementById("submit-answers");
-const saveRoundBtn    = document.getElementById("save-round");
-const refreshBtn      = document.getElementById("refresh-results");
-const resultsEl       = document.getElementById("results");
-const playersBody     = document.getElementById("players-body");
-
-
-const stateRef   = ref(db, `rooms/${ROOM_ID}/state`);
-const answersRef = ref(db, `rooms/${ROOM_ID}/answers`);
-const scoresRef  = ref(db, `rooms/${ROOM_ID}/scores`);
-const playersRef = ref(db, `rooms/${ROOM_ID}/players`);
-
-
-let currentRound = 0;
-
-// === LOGIN I ULOGA (ADMIN ILI IGRAČ) ===
-let currentUserName = "";
-let isAdmin = false;
-let isLoggedIn = false;
-
-// poziva se kad se igrač prijavi
-async function loginPlayer() {
-
-    if (!name) {
-        alert("Prvo upiši svoje ime.");
-        return;
-    }
-
-    currentUserName = name;
-    isAdmin = (currentUserName === "MarkoS");
-    isLoggedIn = true;
-
-    // samo admin vidi gumb za novu rundu
-    newLetterBtn.style.display = isAdmin ? "inline-flex" : "none";
-
-    // dopusti slanje odgovora tek nakon prijave
-    submitBtn.disabled = false;
-
-    // možeš po želji spremiti igrača u listu players kasnije
-    alert(`Prijavljen si kao ${currentUserName}${isAdmin ? " (administrator)" : ""}.`);
-}
-
-// gumb za login
-loginBtn.addEventListener("click", loginPlayer);
-
-// na početku: nismo prijavljeni, gumb za novu rundu sakriven, slanje odgovora onemogućeno
-newLetterBtn.style.display = "none";
-submitBtn.disabled = true;
-
-
-// --- 1. Timer 90 s (lokalni) ---
-let timerInterval = null;
-let remaining = 90;
-
-function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-}
-function updateTimer() { timerEl.textContent = formatTime(remaining); }
-function resetTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-    }
-    remaining = 90;
-    updateTimer();
-}
-startTimerBtn.addEventListener("click", () => {
-    resetTimer();
-    timerInterval = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-            remaining = 0;
-            updateTimer();
-            clearInterval(timerInterval);
-            timerInterval = null;
-        } else {
-            updateTimer();
-        }
-    }, 1000);
-});
-updateTimer();
-
-// --- 2. Praćenje stanja (slovo + runda) ---
-onValue(stateRef, (snap) => {
-    const data = snap.val() || {};
-    currentRound = data.roundNumber || 0;
-    currentLetterEl.textContent = data.currentLetter || "?";
-    roundInfoEl.textContent = `Runda: ${currentRound} / ${MAX_ROUNDS}`;
-    if (currentRound >= MAX_ROUNDS) {
-        newLetterBtn.disabled = true;
-        newLetterBtn.textContent = "Odigrano 7 rundi";
-    }
-});
-
-newLetterBtn.addEventListener("click", async () => {
-    if (!isAdmin) {
-        alert("Samo administrator (MarkoS) može pokrenuti novu rundu.");
-        return;
-    }
-
-    const snap = await get(stateRef);
-    const data = snap.val() || {};
-    const round = data.roundNumber || 0;
-    if (round >= MAX_ROUNDS) {
-        alert("Već je odigrano 7 rundi.");
-        return;
-    }
-    const idx = Math.floor(Math.random() * letters.length);
-    const letter = letters[idx];
-    try {
-        await set(stateRef, {
-            roundNumber: round + 1,
-            currentLetter: letter,
-            updatedAt: Date.now()
-        }); /* [web:24][web:100] */
-    } catch (e) {
-        console.error(e);
-        alert("Greška pri spremanju nove runde.");
-    }
-});
-
-// --- 3. Slanje odgovora igrača ---
-function getCategoryValue(id) {
-    const el = document.getElementById(id);
-    return el ? el.value.trim() : "";
-}
-function safeKey(str) {
-    return str.replace(/[.#$\[\]]/g, "_");
-}
-
-submitBtn.addEventListener("click", async () => {
-    if (!isLoggedIn) {
-        alert("Prvo se prijavi u igru gumbom 'Prijavi se u igru'.");
-        return;
-    }
-
-    const name = currentUserName;
-
-    const playerKeyLobby = safeKey(name);
-    const playerLobbyRef = ref(db, `rooms/${ROOM_ID}/players/${playerKeyLobby}`);
-    await set(playerLobbyRef, {
-        name,
-        joinedAt: Date.now()
-    });
-    
-    const stateSnap = await get(stateRef);
-    const state = stateSnap.val() || {};
-    const round = state.roundNumber || 0;
-    const letter = state.currentLetter || "?";
-    if (round === 0 || letter === "?") {
-        alert("Voditelj prvo mora pokrenuti rundu (Nova runda).");
-        return;
-    }
-
-    const answers = {};
-    categories.forEach(cat => {
-        answers[cat.id] = getCategoryValue(cat.id);
-    });
-
-    const playerKey = safeKey(name);
-    const playerRef = ref(db, `rooms/${ROOM_ID}/answers/round${round}/${playerKey}`);
-
-    const data = { name, letter, timestamp: Date.now(), answers };
-
-    try {
-        await set(playerRef, data); /* [web:24][web:108] */
-        alert(`Odgovori za rundu ${round} su poslani!`);
-    } catch (e) {
-        console.error(e);
-        alert("Greška pri slanju odgovora.");
-    }
-});
-
-// --- 4. Učitavanje odgovora i prikaz tablice s kvačicama ---
-let latestRoundPlayers = null;
-
-async function loadForCurrentRound() {
-    const stateSnap = await get(stateRef);
-    const state = stateSnap.val() || {};
-    const round = state.roundNumber || 0;
-
-    const [answersSnap, scoresSnap] = await Promise.all([
-        get(answersRef),
-        get(scoresRef)
-    ]); /* [web:24][web:39] */
-
-    const allAnswers = answersSnap.exists() ? answersSnap.val() : {};
-    const scoresData = scoresSnap.exists() ? scoresSnap.val() : {};
-
-    latestRoundPlayers = allAnswers[`round${round}`] || null;
-
-    buildResultsView(round, latestRoundPlayers, scoresData);
-}
-
-function buildResultsView(round, roundPlayers, scoresData) {
-    let html = "<div class='results-title'>Odgovori i ljestvica</div>";
-
-    if (!round || !roundPlayers) {
-        html += "<p style='font-size:0.8rem; color:#6b7280;'>Još nema odgovora za trenutnu rundu.</p>";
-    } else {
-        const entries = Object.entries(roundPlayers).map(([k, v]) => ({ key: k, ...v }));
-
-        html += `<p style='font-size:0.8rem; color:#6b7280;'>Odgovori za rundu ${round}. Označi kvačicama koje su riječi točne (svaka 1 bod).</p>`;
-        html += "<div class='grid-wrapper'><table><thead><tr>";
-        html += "<th class='category'>Kategorija</th>";
-        entries.forEach(p => { html += "<th>" + (p.name || "???") + "</th>"; });
-        html += "</tr></thead><tbody>";
-
-        categories.forEach(cat => {
-            html += "<tr><th class='category'>" + cat.label + "</th>";
-            entries.forEach(p => {
-                const val = (p.answers && p.answers[cat.id]) ? p.answers[cat.id] : "";
-                html += "<td class='check-cell'>" +
-                        "<div style='display:flex; flex-direction:column; gap:2px; align-items:center;'>" +
-                        "<div style='font-size:0.78rem; min-height:1.2em;'>" +
-                        (val || "<span style='color:#9ca3af'>—</span>") + "</div>";
-                if (isAdmin) {
-                    html += "<label style='font-size:0.75rem; color:#6b7280; display:flex; align-items:center; gap:3px;'>" +
-                            "<input type='checkbox' class='valid-check' data-player-key='" + p.key + "'> točno" +
-                            "</label>";
-                }
-                html += "</div></td>";
-            });
-            html += "</tr>";
-        });
-
-        html += "</tbody></table></div>";
-    }
-
-    // ljestvica
-    html += "<div class='scoreboard' id='scoreboard'>";
-    const entriesScores = Object.entries(scoresData || {});
-    if (!entriesScores.length) {
-        html += "<div style='font-size:0.85rem; color:#6b7280;'>Još nema spremljenih bodova. Nakon kvačica klikni „Spremi bodove ove runde“.</div>";
-    } else {
-        entriesScores.sort((a, b) => (b[1].points || 0) - (a[1].points || 0)); /* [web:73][web:78] */
-        html += "<div style='font-weight:600; margin-bottom:4px;'>Ljestvica bodova (ukupno)</div>";
-        entriesScores.forEach(([, val], index) => {
-            html += "<div class='score-row'><span class='place'>" + (index + 1) +
-                ".</span> " + (val.name || "???") + " – <strong>" +
-                (val.points || 0) + "</strong> bodova</div>";
-        });
-    }
-    html += "</div>";
-
-    resultsEl.innerHTML = html;
-}
-
-// --- 5. Spremanje bodova iz kvačica (1 bod po kvačici) ---
-saveRoundBtn.addEventListener("click", async () => {
-    if (!isAdmin) {
-        alert("Samo administrator (MarkoS) može spremati bodove.");
-        return;
-    }
-
-    if (!latestRoundPlayers) {
-        alert("Prvo klikni 'Osvježi tablicu i ljestvicu' nakon što igrači pošalju odgovore.");
-        return;
-    }
-
-    const checks = resultsEl.querySelectorAll(".valid-check");
-    if (!checks.length) {
-        alert("Nema kvačica – prvo moraš imati tablicu odgovora.");
-        return;
-    }
-
-    const roundPoints = {}; // {playerKey: pointsThisRound}
-    checks.forEach(ch => {
-        if (ch.checked) {
-            const key = ch.getAttribute("data-player-key");
-            roundPoints[key] = (roundPoints[key] || 0) + 1;
-        }
-    });
-
-    if (!Object.keys(roundPoints).length) {
-        alert("Nijedan odgovor nije označen kao točan.");
-        return;
-    }
-
-    const scoresSnap = await get(scoresRef);
-    const currentScores = scoresSnap.exists() ? scoresSnap.val() : {};
-
-    const updates = [];
-    for (const [pKey, addPts] of Object.entries(roundPoints)) {
-        const playerData = latestRoundPlayers[pKey];
-        const name = playerData?.name || pKey;
-        const existing = currentScores[pKey]?.points || 0;
-        const newPoints = existing + addPts;
-        const playerScoreRef = ref(db, `rooms/${ROOM_ID}/scores/${pKey}`);
-        updates.push(set(playerScoreRef, { name, points: newPoints })); /* [web:24][web:108] */
-    }
-
-    try {
-        await Promise.all(updates);
-        await loadForCurrentRound();
-        alert("Bodovi ove runde su spremljeni.");
-    } catch (e) {
-        console.error(e);
-        alert("Greška pri spremanju bodova.");
-    }
-});
-
-    // --- 7. Lista prijavljenih igrača ---
-function renderPlayersList(playersObj) {
-    playersBody.innerHTML = "";
-    if (!playersObj) return;
-
-    const entries = Object.values(playersObj);
-    entries.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-
-    entries.forEach((p, index) => {
-        const tr = document.createElement("tr");
-        const tdNum = document.createElement("td");
-        const tdName = document.createElement("td");
-
-        tdNum.textContent = index + 1;
-        tdName.textContent = p.name || "???";
-
-        tr.appendChild(tdNum);
-        tr.appendChild(tdName);
-        playersBody.appendChild(tr);
-    });
-}
-
-// realtime praćenje liste igrača
-onValue(playersRef, (snap) => {
-    const data = snap.val() || null;
-    renderPlayersList(data);
-});
-
-// --- 6. Gumbi za učitavanje ---
-refreshBtn.addEventListener("click", () => {
-    loadForCurrentRound().catch(err => {
-        console.error(err);
-        alert("Greška pri učitavanju podataka.");
-    });
-});
-
-// inicijalno učitavanje
-loadForCurrentRound().catch(() => {});
-</script>
-</body>
-</html>
+  <!-- EKRAN 2: IGRA (zasad prazno) -->
+  <div id="
