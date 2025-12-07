@@ -246,6 +246,27 @@
         <button id="submit-answers" class="btn btn-primary">Predaj odgovore za ovu rundu</button>
     </div>
 
+        <div class="results" style="margin-top:10px; margin-bottom:10px;">
+        <div class="results-title">Prijavljeni igrači</div>
+        <p style="font-size:0.8rem; color:#6b7280;">
+            Svatko mora upisati ime. Kada se prijavi, pojavi se na listi.
+        </p>
+        <div class="grid-wrapper">
+            <table id="players-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        <th>Igrač</th>
+                    </tr>
+                </thead>
+                <tbody id="players-body">
+                    <!-- igrači će se puniti iz JavaScripta -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
     <p class="hint">
         Voditelj pokrene „Nova runda (slovo)“. Svi vide isto slovo, pokrenu timer, pišu 90 s i predaju odgovore.
         Zatim voditelj označi kvačice i klikne „Spremi bodove ove runde“.
@@ -362,10 +383,14 @@ const submitBtn       = document.getElementById("submit-answers");
 const saveRoundBtn    = document.getElementById("save-round");
 const refreshBtn      = document.getElementById("refresh-results");
 const resultsEl       = document.getElementById("results");
+const playersBody     = document.getElementById("players-body");
+
 
 const stateRef   = ref(db, `rooms/${ROOM_ID}/state`);
 const answersRef = ref(db, `rooms/${ROOM_ID}/answers`);
 const scoresRef  = ref(db, `rooms/${ROOM_ID}/scores`);
+const playersRef = ref(db, `rooms/${ROOM_ID}/players`);
+
 
 let currentRound = 0;
 
@@ -480,6 +505,14 @@ submitBtn.addEventListener("click", async () => {
     isAdmin = (currentUserName === "MarkoS");
     updateRoleFromInput();
 
+    // spremi igrača u listu prijavljenih
+    const playerKeyLobby = safeKey(name);
+    const playerLobbyRef = ref(db, `rooms/${ROOM_ID}/players/${playerKeyLobby}`);
+    await set(playerLobbyRef, {
+        name,
+        joinedAt: Date.now()
+    });
+    
     const stateSnap = await get(stateRef);
     const state = stateSnap.val() || {};
     const round = state.roundNumber || 0;
@@ -635,6 +668,34 @@ saveRoundBtn.addEventListener("click", async () => {
         console.error(e);
         alert("Greška pri spremanju bodova.");
     }
+});
+
+    // --- 7. Lista prijavljenih igrača ---
+function renderPlayersList(playersObj) {
+    playersBody.innerHTML = "";
+    if (!playersObj) return;
+
+    const entries = Object.values(playersObj);
+    entries.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+
+    entries.forEach((p, index) => {
+        const tr = document.createElement("tr");
+        const tdNum = document.createElement("td");
+        const tdName = document.createElement("td");
+
+        tdNum.textContent = index + 1;
+        tdName.textContent = p.name || "???";
+
+        tr.appendChild(tdNum);
+        tr.appendChild(tdName);
+        playersBody.appendChild(tr);
+    });
+}
+
+// realtime praćenje liste igrača
+onValue(playersRef, (snap) => {
+    const data = snap.val() || null;
+    renderPlayersList(data);
 });
 
 // --- 6. Gumbi za učitavanje ---
