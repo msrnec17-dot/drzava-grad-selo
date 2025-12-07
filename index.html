@@ -1,141 +1,130 @@
 <!DOCTYPE html>
 <html lang="hr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Država – grad – selo</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;  /* kartica u sredini ekrana */
-      padding: 20px;
-    }
-    .app {
-      background: #ffffff;
-      max-width: 900px;
-      width: 100%;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
-      padding: 22px 22px 26px;
-    }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 6px;
-      text-align: center;
-      color: #111827;
-    }
-    .subtitle {
-      text-align: center;
-      font-size: 0.95rem;
-      color: #6b7280;
-      margin-bottom: 18px;
-    }
-    .screen { display: none; }
-    .screen.active { display: block; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Država – grad – selo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 20px;
+}
+.app {
+background: #ffffff;
+max-width: 900px;
+width: 100%;
+border-radius: 16px;
+box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+padding: 22px 22px 26px;
+}
+h1 {
+font-size: 1.8rem;
+margin-bottom: 6px;
+text-align: center;
+color: #111827;
+}
+.subtitle {
+text-align: center;
+font-size: 0.95rem;
+color: #6b7280;
+margin-bottom: 18px;
+}
+.screen { display: none; }
+.screen.active { display: block; }
+.field {
+display: flex;
+flex-direction: column;
+gap: 6px;
+margin-bottom: 14px;
+}
+label {
+font-size: 0.9rem;
+color: #374151;
+}
+input[type="text"] {
+border-radius: 999px;
+border: 1px solid #d1d5db;
+padding: 8px 11px;
+font-size: 0.95rem;
+}
+.btn {
+border: none;
+border-radius: 999px;
+padding: 8px 16px;
+font-size: 0.95rem;
+cursor: pointer;
+transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+white-space: nowrap;
+}
+.btn-primary {
+background: #16a34a;
+color: #ffffff;
+box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+}
+.btn-primary:hover { background: #15803d; transform: translateY(-1px); }
+.btn-secondary {
+background: #e5e7eb;
+color: #111827;
+}
+.btn-secondary:hover { background: #d1d5db; }
+.info {
+font-size: 0.85rem;
+color: #6b7280;
+margin-top: 8px;
+}
+.welcome {
+font-size: 1rem;
+margin-bottom: 10px;
+color: #111827;
+}
+.game-section { margin-top: 14px; }
+table {
+width: 100%;
+border-collapse: collapse;
+font-size: 0.9rem;
+}
+th, td {
+border: 1px solid #e5e7eb;
+padding: 4px 6px;
+}
+th { background: #f3f4f6; }
+.center { text-align: center; }
+.timer-box {
+margin-top: 10px;
+padding: 8px 10px;
+border-radius: 12px;
+background: #fee2e2;
+display: inline-flex;
+align-items: center;
+gap: 8px;
+}
+.timer-label {
+font-size: 0.8rem;
+color: #4b5563;
+}
+.timer-value {
+font-family: "Roboto Mono", monospace;
+font-size: 1.2rem;
+font-weight: 600;
+color: #b91c1c;
+}
+</style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
-    label {
-      font-size: 0.9rem;
-      color: #374151;
-    }
-    input[type="text"] {
-      border-radius: 999px;
-      border: 1px solid #d1d5db;
-      padding: 8px 11px;
-      font-size: 0.95rem;
-    }
-
-    .btn {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 16px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-    .btn-primary {
-      background: #16a34a; /* zelena */
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
-    }
-    .btn-primary:hover { background: #15803d; transform: translateY(-1px); }
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-    .btn-secondary:hover { background: #d1d5db; }
-
-    .info {
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-top: 8px;
-    }
-    .welcome {
-      font-size: 1rem;
-      margin-bottom: 10px;
-      color: #111827;
-    }
-    .game-section {
-      margin-top: 14px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-    }
-    th, td {
-      border: 1px solid #e5e7eb;
-      padding: 4px 6px;
-    }
-    th {
-      background: #f3f4f6;
-    }
-    .center {
-      text-align: center;
-    }
-    .timer-box {
-      margin-top: 10px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: #fee2e2;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .timer-label {
-      font-size: 0.8rem;
-      color: #4b5563;
-    }
-    .timer-value {
-      font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: #b91c1c;
-    }
-  </style>
-
-  <!-- Firebase i ostali JavaScript (type="module") -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-
-    // OVDJE ZALIPI SVOJ KONFIG IZ FIREBASE KONZOLE
-  const firebaseConfig = {
+// === Firebase konfiguracija ===
+const firebaseConfig = {
   apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
   authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
   databaseURL: "https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
@@ -145,381 +134,245 @@
   appId: "1:499006072662:web:3001f6700f0268df1b58f7"
 };
 
-    const app = initializeApp(firebaseConfig);
-    const db  = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        // --- postavke sobe ---
-    const ROOM_ID = "glavnaSoba";
+// === postavke ===
+const ROOM_ID = "glavnaSoba";
 
-    // --- DOM elementi ---
-    const loginScreen  = document.getElementById("login-screen");
-    const gameScreen   = document.getElementById("game-screen");
-    const loginInput   = document.getElementById("login-name");
-    const loginBtn     = document.getElementById("login-btn");
-    const logoutBtn    = document.getElementById("logout-btn");
-    const welcomeText  = document.getElementById("welcome-text");
-    const playersBody  = document.getElementById("players-body");
-    const timerBox     = document.getElementById("timer-box");
-    const countdownEl  = document.getElementById("countdown");
+// === DOM elementi ===
+const loginScreen = document.getElementById("login-screen");
+const gameScreen = document.getElementById("game-screen");
+const loginInput = document.getElementById("login-name");
+const loginBtn = document.getElementById("login-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const welcomeText = document.getElementById("welcome-text");
+const playersBody = document.getElementById("players-body");
+const timerBox = document.getElementById("timer-box");
+const countdownEl = document.getElementById("countdown");
 
-    // --- reference u bazi ---
-    const playersRef = ref(db, `rooms/${ROOM_ID}/players`);
-    const stateRef   = ref(db, `rooms/${ROOM_ID}/state`);
+// === reference u bazi ===
+const playersRef = ref(db, `rooms/${ROOM_ID}/players`);
+const roundsRef = ref(db, `rooms/${ROOM_ID}/rounds/1`);
 
-    let currentUserName = "";
-    let isAdmin = false;
+let currentUserName = "";
+let countdownInterval = null;
+let countdownRemaining = 120;
+let gameStarted = false;
 
-    let countdownInterval = null;
-    let countdownRemaining = 15;
-
-    function showScreen(name) {
-      if (name === "login") {
-        loginScreen.classList.add("active");
-        gameScreen.classList.remove("active");
-      } else if (name === "game") {
-        gameScreen.classList.add("active");
-        loginScreen.classList.remove("active");
-      }
-    }
-
-    // --- pomoćne funkcije ---
-    function renderPlayers(playersObj) {
-      playersBody.innerHTML = "";
-      if (!playersObj) return;
-
-      const entries = Object.values(playersObj);
-      entries.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-
-      entries.forEach((p, index) => {
-        const tr = document.createElement("tr");
-
-        const tdNum = document.createElement("td");
-        tdNum.textContent = index + 1;
-        tdNum.className = "center";
-
-        const tdName = document.createElement("td");
-        tdName.textContent = p.name || "???";
-
-        const tdReady = document.createElement("td");
-        tdReady.className = "center";
-
-        const btn = document.createElement("button");
-        btn.className = "btn btn-primary";
-
-        const isThisUser = (p.name === currentUserName);
-        const ready = !!p.ready;
-
-        btn.textContent = ready ? "Spreman" : "Pokaži znanje";
-        btn.style.opacity = ready ? "0.6" : "1";
-        btn.disabled = ready || !isThisUser;
-
-        if (isThisUser && !ready) {
-          btn.addEventListener("click", async () => {
-            const playerKey = safeKey(currentUserName);
-            const thisPlayerRef = ref(db, `rooms/${ROOM_ID}/players/${playerKey}`);
-            await set(thisPlayerRef, {
-              name: currentUserName,
-              joinedAt: p.joinedAt || Date.now(),
-              ready: true
-            });
-          });
-        }
-
-        tdReady.appendChild(btn);
-
-        tr.appendChild(tdNum);
-        tr.appendChild(tdName);
-        tr.appendChild(tdReady);
-
-        playersBody.appendChild(tr);
-      });
-    }
-
-    function safeKey(str) {
-      return (str || "").replace(/[.#$\[\]]/g, "_");
-    }
-
-    function updateCountdownDisplay() {
-      const m = String(Math.floor(countdownRemaining / 60)).padStart(2, "0");
-      const s = String(countdownRemaining % 60).padStart(2, "0");
-      countdownEl.textContent = `${m}:${s}`;
-    
-        } else {
-          updateCountdownDisplay();
-        }
-      }, 1000);
-    }
-
-    // --- slušaj listu igrača iz Firebasea ---
-    onValue(playersRef, (snap) => {
-      const data = snap.val() || null;
-      renderPlayers(data);
-
-      if (!data) {
-        timerBox.style.display = "none";
-        return;
-      }
-
-      const list = Object.values(data);
-      const allReady = list.length > 0 && list.every(p => !!p.ready);
-
-      if (allReady && !countdownInterval) {
-        startCountdown();
-      }
-    });
-
-    // --- login ---
-    loginBtn.addEventListener("click", async () => {
-      const name = (loginInput.value || "").trim();
-      if (!name) {
-        alert("Molim upiši svoje ime.");
-        return;
-      }
-
-      currentUserName = name;
-      isAdmin = (currentUserName === "MarkoS");
-
-      const playerKey = safeKey(currentUserName);
-      const playerRef = ref(db, `rooms/${ROOM_ID}/players/${playerKey}`);
-
-      await set(playerRef, {
-        name: currentUserName,
-        joinedAt: Date.now(),
-        ready: false
-      });
-
-      welcomeText.textContent = `Dobrodošao, ${currentUserName}${isAdmin ? " (administrator)" : ""}!`;
-      timerBox.style.display = "none";
-      showScreen("game");
-    });
-
-    // --- logout (lokalno, bez brisanja iz baze) ---
-    logoutBtn.addEventListener("click", () => {
-      currentUserName = "";
-      isAdmin = false;
-      loginInput.value = "";
-      showScreen("login");
-    });
-    
-    // --- SLANJE ODGOVORA ---
-    const submitBtn = document.getElementById("submit-answers");
-    const currentRoundRef = ref(db, `rooms/${ROOM_ID}/rounds/1`);
-
-    submitBtn.addEventListener("click", async () => {
-      if (!currentUserName) {
-        alert("Nisi prijavljen!");
-        return;
-      }
-
-      const answers = {
-        drzava: document.getElementById("drzava").value.trim(),
-        grad: document.getElementById("grad").value.trim(),
-        selo: document.getElementById("selo").value.trim(),
-        rijeka: document.getElementById("rijeka").value.trim(),
-        planina: document.getElementById("planina").value.trim(),
-        zivotinja: document.getElementById("zivotinja").value.trim(),
-        biljka: document.getElementById("biljka").value.trim(),
-        stvar: document.getElementById("stvar").value.trim(),
-        boja: document.getElementById("boja").value.trim(),
-        zanimanje: document.getElementById("zanimanje").value.trim(),
-        ime: document.getElementById("ime").value.trim(),
-        submittedAt: Date.now()
-      };
-
-      const playerKey = safeKey(currentUserName);
-      const answersRef = ref(db, `rooms/${ROOM_ID}/rounds/1/${playerKey}`);
-
-      try {
-        await set(answersRef, {
+// === pomoćne funkcije ===
+function safeKey(str) {
+  return (str || "").replace(/[.#$\[\]]/g, "_");
+}
+function showScreen(name) {
+  if (name === "login") {
+    loginScreen.classList.add("active");
+    gameScreen.classList.remove("active");
+  } else {
+    loginScreen.classList.remove("active");
+    gameScreen.classList.add("active");
+  }
+}
+function renderPlayers(playersObj) {
+  playersBody.innerHTML = "";
+  if (!playersObj) return;
+  const entries = Object.values(playersObj);
+  entries.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+  entries.forEach((p, index) => {
+    const tr = document.createElement("tr");
+    const tdNum = document.createElement("td");
+    tdNum.textContent = index + 1;
+    tdNum.className = "center";
+    const tdName = document.createElement("td");
+    tdName.textContent = p.name || "";
+    const tdReady = document.createElement("td");
+    tdReady.className = "center";
+    const btn = document.createElement("button");
+    btn.className = "btn btn-primary";
+    const ready = !!p.ready;
+    const isThisUser = (p.name === currentUserName);
+    btn.textContent = ready ? "Spreman" : "Pokaži znanje";
+    btn.style.opacity = ready ? "0.6" : "1";
+    btn.disabled = ready || !isThisUser;
+    if (isThisUser && !ready) {
+      btn.addEventListener("click", async () => {
+        const playerKey = safeKey(currentUserName);
+        const thisPlayerRef = ref(db, `rooms/${ROOM_ID}/players/${playerKey}`);
+        await set(thisPlayerRef, {
           name: currentUserName,
-          letter: "A",
-          answers,
-          submittedAt: Date.now()
+          joinedAt: p.joinedAt || Date.now(),
+          ready: true
         });
-            // --- GLASANJE ODGOVORA ---
-    const votingPanel = document.getElementById("voting-panel");
-    const votingTable = document.getElementById("voting-table");
-    const votingStats = document.getElementById("voting-stats");
-    const roundsRef = ref(db, `rooms/${ROOM_ID
-
-        alert("Odgovori su poslani!");
-        
-        document.querySelectorAll("#game-fields input").forEach(input => input.value = "");
-      } catch (e) {
-        console.error(e);
-        alert("Greška pri slanju odgovora.");
-      }
-    });
-    
-          // --- GLASANJE ODGOVORA ---
-    const votingPanel = document.getElementById("voting-panel");
-    const votingTable = document.getElementById("voting-table");
-    const votingStats = document.getElementById("voting-stats");
-    const roundsRef = ref(db, `rooms/${ROOM_ID}/rounds/1`);
-    const votesRef = ref(db, `rooms/${ROOM_ID}/votes/1`);
-    const scoresRef = ref(db, `rooms/${ROOM_ID}/scores`);
-
-    let currentRound = 1;
-
-    onValue(roundsRef, (snap) => {
-      const roundData = snap.val() || {};
-      if (Object.keys(roundData).length > 1) {
-        votingPanel.style.display = "block";
-        document.getElementById("game-fields").style.display = "none";
-        buildVotingTable(roundData);
-      }
-    });
-
-    function buildVotingTable(roundData) {
-      const entries = Object.entries(roundData).map(([key, data]) => ({ key, ...data }));
-      const categories = ['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
-
-      let html = `
-        <table style="min-width:900px;">
-          <thead>
-            <tr>
-              <th style="width:120px;">Kategorija</th>
-      `;
-      
-      entries.forEach(p => {
-        html += `<th style="width:160px;">${p.name}</th>`;
       });
-      html += `</tr></thead><tbody>`;
+    }
+    tdReady.appendChild(btn);
+    tr.appendChild(tdNum);
+    tr.appendChild(tdName);
+    tr.appendChild(tdReady);
+    playersBody.appendChild(tr);
+  });
+}
 
-      categories.forEach(cat => {
-        html += `<tr><th>${cat.charAt(0).toUpperCase() + cat.slice(1)}</th>`;
-        
-        entries.forEach(p => {
-          const answer = p.answers?.[cat] || "—";
-          html += `
-            <td style="position:relative;">
-              <span style="font-size:0.85rem;">${answer}</span>
-              <div style="position:absolute; top:0; right:0;">
-                <button class="vote-btn thumbs-up" data-player="${p.key}" data-cat="${cat}" data-vote="yes" title="Točan" style="background:none; border:none; font-size:1.2rem; cursor:pointer; margin-left:4px;">👍</button>
-                <button class="vote-btn thumbs-down" data-player="${p.key}" data-cat="${cat}" data-vote="no" title="Netačan" style="background:none; border
+// === TIMER ===
+function updateCountdownDisplay() {
+  const m = String(Math.floor(countdownRemaining / 60)).padStart(2, "0");
+  const s = String(countdownRemaining % 60).padStart(2, "0");
+  countdownEl.textContent = `${m}:${s}`;
+}
+function startCountdown() {
+  countdownRemaining = 120;
+  timerBox.style.display = "inline-flex";
+  updateCountdownDisplay();
+  countdownInterval = setInterval(() => {
+    countdownRemaining--;
+    updateCountdownDisplay();
+    if (countdownRemaining <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      startRound();
+    }
+  }, 1000);
+}
+function startRound() {
+  timerBox.style.display = "none";
+  document.getElementById("game-fields").style.display = "block";
+}
 
+// === osluškuj promjene igrača ===
+onValue(playersRef, (snap) => {
+  const data = snap.val() || null;
+  renderPlayers(data);
+  if (!data) {
+    timerBox.style.display = "none";
+    return;
+  }
+  const list = Object.values(data);
+  const allReady = list.length > 0 && list.every(p => !!p.ready);
+  if (allReady && !countdownInterval && !gameStarted) {
+    gameStarted = true;
+    startCountdown();
+  }
+});
 
-    // OVDJE ĆE KASNIJE IĆI SAV TVOJ GAME KOD (login, lobby, polja...)
-  </script>
+// === login ===
+loginBtn.addEventListener("click", async () => {
+  const name = (loginInput.value || "").trim();
+  if (!name) {
+    alert("Molim upiši svoje ime.");
+    return;
+  }
+  currentUserName = name;
+  const playerKey = safeKey(name);
+  const playerRef = ref(db, `rooms/${ROOM_ID}/players/${playerKey}`);
+  await set(playerRef, {
+    name: currentUserName,
+    joinedAt: Date.now(),
+    ready: false
+  });
+  welcomeText.textContent = `Dobrodošao, ${currentUserName}!`;
+  timerBox.style.display = "none";
+  showScreen("game");
+});
+
+// === logout ===
+logoutBtn.addEventListener("click", () => {
+  currentUserName = "";
+  loginInput.value = "";
+  showScreen("login");
+});
+
+// === slanje odgovora ===
+const submitBtn = document.getElementById("submit-answers");
+submitBtn.addEventListener("click", async () => {
+  if (!currentUserName) {
+    alert("Nisi prijavljen!");
+    return;
+  }
+  const answers = {
+    drzava: document.getElementById("drzava").value.trim(),
+    grad: document.getElementById("grad").value.trim(),
+    selo: document.getElementById("selo").value.trim(),
+    rijeka: document.getElementById("rijeka").value.trim(),
+    planina: document.getElementById("planina").value.trim(),
+    zivotinja: document.getElementById("zivotinja").value.trim(),
+    biljka: document.getElementById("biljka").value.trim(),
+    stvar: document.getElementById("stvar").value.trim(),
+    boja: document.getElementById("boja").value.trim(),
+    zanimanje: document.getElementById("zanimanje").value.trim(),
+    ime: document.getElementById("ime").value.trim(),
+    submittedAt: Date.now()
+  };
+  const playerKey = safeKey(currentUserName);
+  const answersRef = ref(db, `rooms/${ROOM_ID}/rounds/1/${playerKey}`);
+  try {
+    await set(answersRef, {
+      name: currentUserName,
+      letter: "A",
+      answers,
+      submittedAt: Date.now()
+    });
+    alert("Odgovori su poslani!");
+    document.querySelectorAll("#game-fields input").forEach(i => i.value = "");
+  } catch (err) {
+    console.error(err);
+    alert("Greška pri slanju odgovora.");
+  }
+});
+</script>
 </head>
-
 <body>
 <div class="app">
-  <h1>Država – grad – selo</h1>
-  <p class="subtitle">Online verzija s prijavom igrača</p>
+<h1>Država – grad – selo</h1>
+<p class="subtitle">Online verzija s prijavom igrača</p>
 
-  <!-- EKRAN 1: LOGIN -->
-  <div id="login-screen" class="screen active">
-    <div class="field">
-      <label for="login-name">Upiši svoje ime (prijava u igru):</label>
-      <input type="text" id="login-name" placeholder="Npr. Marko, Ana..." autocomplete="off">
-    </div>
-    <button id="login-btn" class="btn btn-primary">Prijavi se</button>
-    <p class="info">
-      Ovdje se igrači prijavljuju u igru. Nakon prijave otvara se stranica za igru.
-    </p>
-  </div>
-
-  <!-- EKRAN 2: LOBBY + IGRA (zasad samo lobby i timer) -->
-  <div id="game-screen" class="screen">
-    <p id="welcome-text" class="welcome"></p>
-
-    <div class="game-section">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px;" class="center">#</th>
-            <th>Ime igrača</th>
-            <th style="width:140px;" class="center">Pokaži znanje</th>
-          </tr>
-        </thead>
-        <tbody id="players-body">
-          <!-- igrači se pune iz JS-a -->
-        </tbody>
-      </table>
-
-      <div class="timer-box" id="timer-box" style="display:none;">
-        <span class="timer-label">Početak igre za:</span>
-        <span class="timer-value" id="countdown">00:15</span>
-      </div>
-    </div>
-
-          <!-- GLASANJE ODGOVORA (sakriveno dok runda ne završi) -->
-    <div id="voting-panel" class="game-section" style="display:none; margin-top:20px;">
-      <h3 style="font-size:1.1rem; margin-bottom:12px; color:#111827;">Glasaj za odgovore (runda završena)</h3>
-      <div id="voting-table" style="overflow-x:auto; background:#f9fafb; padding:12px; border-radius:12px; border:1px solid #e5e7eb;">
-        <!-- tablica će se puniti iz JS-a -->
-      </div>
-      <div id="voting-stats" style="margin-top:12px; font-size:0.9rem; color:#6b7280; text-align:center;">
-        Čekamo glasove svih igrača... (90%+ 👍 = automatski 1 bod)
-      </div>
-    </div>
-
-
-        <!-- POLJA ZA ODGOVORE (sakrivena dok igra ne krene) -->
-    <div id="game-fields" class="game-section" style="display:none; margin-top:16px;">
-      <h3 style="font-size:1.1rem; margin-bottom:12px; color:#111827;">Runda 1 - Slovo: <span id="current-letter" style="font-size:1.4rem; font-weight:700;">?</span></h3>
-      
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-        <div class="field">
-          <label>Država</label>
-          <input type="text" id="drzava" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Grad</label>
-          <input type="text" id="grad" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Selo / mjesto</label>
-          <input type="text" id="selo" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Rijeka</label>
-          <input type="text" id="rijeka" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Planina / brdo</label>
-          <input type="text" id="planina" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Životinja</label>
-          <input type="text" id="zivotinja" autocomplete="off">
-        </div>
-      </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="field">
-          <label>Biljka</label>
-          <input type="text" id="biljka" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Stvar / pojam</label>
-          <input type="text" id="stvar" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Boja</label>
-          <input type="text" id="boja" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Zanimanje</label>
-          <input type="text" id="zanimanje" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Ime</label>
-          <input type="text" id="ime" autocomplete="off">
-        </div>
-      </div>
-
-      <button id="submit-answers" class="btn btn-primary" style="margin-top:16px; width:100%;">
-        Predaj odgovore
-      </button>
-    </div>
-
-    <button id="logout-btn" class="btn btn-secondary" style="margin-top:14px;">
-      Natrag na prijavu
-    </button>
-  </div>
+<div id="login-screen" class="screen active">
+<div class="field">
+<label for="login-name">Upiši svoje ime:</label>
+<input type="text" id="login-name" placeholder="Npr. Marko, Ana..." autocomplete="off">
+</div>
+<button id="login-btn" class="btn btn-primary">Prijavi se</button>
+<p class="info">Kad se prijaviš, pojavit ćeš se u listi igrača.</p>
 </div>
 
+<div id="game-screen" class="screen">
+<p id="welcome-text" class="welcome"></p>
+
+<div class="game-section">
+<table>
+<thead>
+<tr>
+<th style="width:40px;" class="center">#</th>
+<th>Ime igrača</th>
+<th style="width:140px;" class="center">Pokaži znanje</th>
+</tr>
+</thead>
+<tbody id="players-body"></tbody>
+</table>
+<div class="timer-box" id="timer-box" style="display:none;">
+<span class="timer-label">Početak igre za:</span>
+<span class="timer-value" id="countdown">02:00</span>
+</div>
+</div>
+
+<div id="game-fields" class="game-section" style="display:none; margin-top:16px;">
+<h3 style="font-size:1.1rem; margin-bottom:12px; color:#111827;">Runda 1 - Slovo: <span id="current-letter" style="font-size:1.4rem; font-weight:700;">A</span></h3>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+<div class="field"><label>Država</label><input type="text" id="drzava"></div>
+<div class="field"><label>Grad</label><input type="text" id="grad"></div>
+<div class="field"><label>Selo / mjesto</label><input type="text" id="selo"></div>
+<div class="field"><label>Rijeka</label><input type="text" id="rijeka"></div>
+<div class="field"><label>Planina</label><input type="text" id="planina"></div>
+<div class="field"><label>Životinja</label><input type="text" id="zivotinja"></div>
+<div class="field"><label>Biljka</label><input type="text" id="biljka"></div>
+<div class="field"><label>Stvar</label><input type="text" id="stvar"></div>
+<div class="field"><label>Boja</label><input type="text" id="boja"></div>
+<div class="field"><label>Zanimanje</label><input type="text" id="zanimanje"></div>
+<div class="field"><label>Ime</label><input type="text" id="ime"></div>
+</div>
+<button id="submit-answers" class="btn btn-primary" style="margin-top:10px; width:100%;">Predaj odgovore</button>
+</div>
+<button id="logout-btn" class="btn btn-secondary" style="margin-top:14px;">Odjavi se</button>
+</div>
+</div>
 </body>
 </html>
