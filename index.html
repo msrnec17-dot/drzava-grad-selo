@@ -316,7 +316,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"; /* [web:24][web:39] */
 
-// --- OVDJE ZALIPI SVOJ firebaseConfig BLOK IZ KONZOLE ---
 const firebaseConfig = {
   apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
   authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
@@ -326,7 +325,6 @@ const firebaseConfig = {
   messagingSenderId: "499006072662",
   appId: "1:499006072662:web:3001f6700f0268df1b58f7"
 };
-// --------------------------------------------------------
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
