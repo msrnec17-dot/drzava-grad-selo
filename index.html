@@ -371,6 +371,24 @@ const scoresRef  = ref(db, `rooms/${ROOM_ID}/scores`);
 
 let currentRound = 0;
 
+// === LOGIN I ULOGA (ADMIN ILI IGRAČ) ===
+let currentUserName = "";
+let isAdmin = false;
+
+function updateRoleFromInput() {
+    currentUserName = (playerNameEl.value || "").trim();
+    isAdmin = (currentUserName === "MarkoS"); // OVDJE JE ADMIN IME
+
+    if (isAdmin) {
+        newLetterBtn.style.display = "inline-flex";
+    } else {
+        newLetterBtn.style.display = "none";
+    }
+}
+
+playerNameEl.addEventListener("input", updateRoleFromInput);
+newLetterBtn.style.display = "none";
+
 // --- 1. Timer 90 s (lokalni) ---
 let timerInterval = null;
 let remaining = 90;
@@ -418,6 +436,11 @@ onValue(stateRef, (snap) => {
 });
 
 newLetterBtn.addEventListener("click", async () => {
+    if (!isAdmin) {
+        alert("Samo administrator (MarkoS) može pokrenuti novu rundu.");
+        return;
+    }
+
     const snap = await get(stateRef);
     const data = snap.val() || {};
     const round = data.roundNumber || 0;
@@ -454,6 +477,10 @@ submitBtn.addEventListener("click", async () => {
         alert("Upiši svoje ime prije slanja odgovora.");
         return;
     }
+
+    currentUserName = name;
+    isAdmin = (currentUserName === "MarkoS");
+    updateRoleFromInput();
 
     const stateSnap = await get(stateRef);
     const state = stateSnap.val() || {};
@@ -525,10 +552,13 @@ function buildResultsView(round, roundPlayers, scoresData) {
                 html += "<td class='check-cell'>" +
                         "<div style='display:flex; flex-direction:column; gap:2px; align-items:center;'>" +
                         "<div style='font-size:0.78rem; min-height:1.2em;'>" +
-                        (val || "<span style='color:#9ca3af'>—</span>") + "</div>" +
-                        "<label style='font-size:0.75rem; color:#6b7280; display:flex; align-items:center; gap:3px;'>" +
-                        "<input type='checkbox' class='valid-check' data-player-key='" + p.key + "'> točno" +
-                        "</label></div></td>";
+                        (val || "<span style='color:#9ca3af'>—</span>") + "</div>";
+                if (isAdmin) {
+                    html += "<label style='font-size:0.75rem; color:#6b7280; display:flex; align-items:center; gap:3px;'>" +
+                            "<input type='checkbox' class='valid-check' data-player-key='" + p.key + "'> točno" +
+                            "</label>";
+                }
+                html += "</div></td>";
             });
             html += "</tr>";
         });
@@ -557,6 +587,11 @@ function buildResultsView(round, roundPlayers, scoresData) {
 
 // --- 5. Spremanje bodova iz kvačica (1 bod po kvačici) ---
 saveRoundBtn.addEventListener("click", async () => {
+    if (!isAdmin) {
+        alert("Samo administrator (MarkoS) može spremati bodove.");
+        return;
+    }
+
     if (!latestRoundPlayers) {
         alert("Prvo klikni 'Osvježi tablicu i ljestvicu' nakon što igrači pošalju odgovore.");
         return;
