@@ -364,7 +364,36 @@
         alert("Greška pri slanju odgovora.");
       }
     });
+    
+        // --- GLASANJE ODGOVORA ---
+    const votingPanel = document.getElementById("voting-panel");
+    const votingTable = document.getElementById("voting-table");
+    const votingStats = document.getElementById("voting-stats");
+    const roundsRef = ref(db, `rooms/${ROOM_ID}/rounds/1`);
+    const votesRef = ref(db, `rooms/${ROOM_ID}/votes/1`);
+    const scoresRef = ref(db, `rooms/${ROOM_ID}/scores`);
 
+    let currentRound = 1;
+
+    // slušaj odgovore i glasove
+    onValue(roundsRef, (snap) => {
+      const roundData = snap.val() || {};
+      if (Object.keys(roundData).length > 1) {
+        votingPanel.style.display = "block";
+        document.getElementById("game-fields").style.display = "none";
+        buildVotingTable(roundData);
+      }
+    });
+
+    function buildVotingTable(roundData) {
+      // ... cijeli kod za tablicu glasanja ...
+    }
+
+    async function handleVote(e) {
+      // ... kod za thumbs up/down ...
+    }
+
+    // automatsko obračunavanje bodova...
 
     // OVDJE ĆE KASNIJE IĆI SAV TVOJ GAME KOD (login, lobby, polja...)
   </script>
@@ -408,6 +437,17 @@
       <div class="timer-box" id="timer-box" style="display:none;">
         <span class="timer-label">Početak igre za:</span>
         <span class="timer-value" id="countdown">00:15</span>
+      </div>
+    </div>
+
+        <!-- GLASANJE ODGOVORA (sakriveno dok runda ne završi) -->
+    <div id="voting-panel" class="game-section" style="display:none; margin-top:20px;">
+      <h3 style="font-size:1.1rem; margin-bottom:12px;">Glasaj za odgovore (runda završena)</h3>
+      <div id="voting-table" style="overflow-x:auto;">
+        <!-- tablica će se puniti iz JS-a -->
+      </div>
+      <div id="voting-stats" style="margin-top:12px; font-size:0.9rem; color:#6b7280;">
+        Čekamo glasove... (90%+ = točan odgovor, 1 bod)
       </div>
     </div>
 
