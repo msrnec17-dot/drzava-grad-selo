@@ -365,7 +365,7 @@
       }
     });
     
-        // --- GLASANJE ODGOVORA ---
+          // --- GLASANJE ODGOVORA ---
     const votingPanel = document.getElementById("voting-panel");
     const votingTable = document.getElementById("voting-table");
     const votingStats = document.getElementById("voting-stats");
@@ -375,7 +375,6 @@
 
     let currentRound = 1;
 
-    // slušaj odgovore i glasove
     onValue(roundsRef, (snap) => {
       const roundData = snap.val() || {};
       if (Object.keys(roundData).length > 1) {
@@ -386,14 +385,33 @@
     });
 
     function buildVotingTable(roundData) {
-      // ... cijeli kod za tablicu glasanja ...
-    }
+      const entries = Object.entries(roundData).map(([key, data]) => ({ key, ...data }));
+      const categories = ['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
 
-    async function handleVote(e) {
-      // ... kod za thumbs up/down ...
-    }
+      let html = `
+        <table style="min-width:900px;">
+          <thead>
+            <tr>
+              <th style="width:120px;">Kategorija</th>
+      `;
+      
+      entries.forEach(p => {
+        html += `<th style="width:160px;">${p.name}</th>`;
+      });
+      html += `</tr></thead><tbody>`;
 
-    // automatsko obračunavanje bodova...
+      categories.forEach(cat => {
+        html += `<tr><th>${cat.charAt(0).toUpperCase() + cat.slice(1)}</th>`;
+        
+        entries.forEach(p => {
+          const answer = p.answers?.[cat] || "—";
+          html += `
+            <td style="position:relative;">
+              <span style="font-size:0.85rem;">${answer}</span>
+              <div style="position:absolute; top:0; right:0;">
+                <button class="vote-btn thumbs-up" data-player="${p.key}" data-cat="${cat}" data-vote="yes" title="Točan" style="background:none; border:none; font-size:1.2rem; cursor:pointer; margin-left:4px;">👍</button>
+                <button class="vote-btn thumbs-down" data-player="${p.key}" data-cat="${cat}" data-vote="no" title="Netačan" style="background:none; border
+
 
     // OVDJE ĆE KASNIJE IĆI SAV TVOJ GAME KOD (login, lobby, polja...)
   </script>
