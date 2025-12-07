@@ -148,6 +148,175 @@
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
 
+        // --- postavke sobe ---
+    const ROOM_ID = "glavnaSoba";
+
+    // --- DOM elementi ---
+    const loginScreen  = document.getElementById("login-screen");
+    const gameScreen   = document.getElementById("game-screen");
+    const loginInput   = document.getElementById("login-name");
+    const loginBtn     = document.getElementById("login-btn");
+    const logoutBtn    = document.getElementById("logout-btn");
+    const welcomeText  = document.getElementById("welcome-text");
+    const playersBody  = document.getElementById("players-body");
+    const timerBox     = document.getElementById("timer-box");
+    const countdownEl  = document.getElementById("countdown");
+
+    // --- reference u bazi ---
+    const playersRef = ref(db, `rooms/${ROOM_ID}/players`);
+    const stateRef   = ref(db, `rooms/${ROOM_ID}/state`);
+
+    let currentUserName = "";
+    let isAdmin = false;
+
+    let countdownInterval = null;
+    let countdownRemaining = 15;
+
+    function showScreen(name) {
+      if (name === "login") {
+        loginScreen.classList.add("active");
+        gameScreen.classList.remove("active");
+      } else if (name === "game") {
+        gameScreen.classList.add("active");
+        loginScreen.classList.remove("active");
+      }
+    }
+
+    // --- pomoćne funkcije ---
+    function renderPlayers(playersObj) {
+      playersBody.innerHTML = "";
+      if (!playersObj) return;
+
+      const entries = Object.values(playersObj);
+      entries.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+
+      entries.forEach((p, index) => {
+        const tr = document.createElement("tr");
+
+        const tdNum = document.createElement("td");
+        tdNum.textContent = index + 1;
+        tdNum.className = "center";
+
+        const tdName = document.createElement("td");
+        tdName.textContent = p.name || "???";
+
+        const tdReady = document.createElement("td");
+        tdReady.className = "center";
+
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary";
+
+        const isThisUser = (p.name === currentUserName);
+        const ready = !!p.ready;
+
+        btn.textContent = ready ? "Spreman" : "Pokaži znanje";
+        btn.style.opacity = ready ? "0.6" : "1";
+        btn.disabled = ready || !isThisUser;
+
+        if (isThisUser && !ready) {
+          btn.addEventListener("click", async () => {
+            const playerKey = safeKey(currentUserName);
+            const thisPlayerRef = ref(db, `rooms/${ROOM_ID}/players/${playerKey}`);
+            await set(thisPlayerRef, {
+              name: currentUserName,
+              joinedAt: p.joinedAt || Date.now(),
+              ready: true
+            });
+          });
+        }
+
+        tdReady.appendChild(btn);
+
+        tr.appendChild(tdNum);
+        tr.appendChild(tdName);
+        tr.appendChild(tdReady);
+
+        playersBody.appendChild(tr);
+      });
+    }
+
+    function safeKey(str) {
+      return (str || "").replace(/[.#$\[\]]/g, "_");
+    }
+
+    function updateCountdownDisplay() {
+      const m = String(Math.floor(countdownRemaining / 60)).padStart(2, "0");
+      const s = String(countdownRemaining % 60).padStart(2, "0");
+      countdownEl.textContent = `${m}:${s}`;
+    }
+
+    function startCountdown() {
+      countdownRemaining = 15;
+      updateCountdownDisplay();
+      timerBox.style.display = "inline-flex";
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        countdownRemaining--;
+        if (countdownRemaining <= 0) {
+          countdownRemaining = 0;
+          updateCountdownDisplay();
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+          alert("Igra počinje! (u sljedećem koraku dodajemo polja za igru)");
+        } else {
+          updateCountdownDisplay();
+        }
+      }, 1000);
+    }
+
+    // --- slušaj listu igrača iz Firebasea ---
+    onValue(playersRef, (snap) => {
+      const data = snap.val() || null;
+      renderPlayers(data);
+
+      if (!data) {
+        timerBox.style.display = "none";
+        return;
+      }
+
+      const list = Object.values(data);
+      const allReady = list.length > 0 && list.every(p => !!p.ready);
+
+      if (allReady && !countdownInterval) {
+        startCountdown();
+      }
+    });
+
+    // --- login ---
+    loginBtn.addEventListener("click", async () => {
+      const name = (loginInput.value || "").trim();
+      if (!name) {
+        alert("Molim upiši svoje ime.");
+        return;
+      }
+
+      currentUserName = name;
+      isAdmin = (currentUserName === "MarkoS");
+
+      const playerKey = safeKey(currentUserName);
+      const playerRef = ref(db, `rooms/${ROOM_ID}/players/${playerKey}`);
+
+      await set(playerRef, {
+        name: currentUserName,
+        joinedAt: Date.now(),
+        ready: false
+      });
+
+      welcomeText.textContent = `Dobrodošao, ${currentUserName}${isAdmin ? " (administrator)" : ""}!`;
+      timerBox.style.display = "none";
+      showScreen("game");
+    });
+
+    // --- logout (lokalno, bez brisanja iz baze) ---
+    logoutBtn.addEventListener("click", () => {
+      currentUserName = "";
+      isAdmin = false;
+      loginInput.value = "";
+      showScreen("login");
+    });
+
+
     // OVDJE ĆE KASNIJE IĆI SAV TVOJ GAME KOD (login, lobby, polja...)
   </script>
 </head>
