@@ -241,10 +241,12 @@
         </div>
     </div>
 
-    <div class="name-row">
+       <div class="name-row">
         <input type="text" id="player-name" placeholder="Tvoje ime (obavezno)">
-        <button id="submit-answers" class="btn btn-primary">Predaj odgovore za ovu rundu</button>
+        <button id="login-btn" class="btn btn-secondary">Prijavi se u igru</button>
+        <button id="submit-answers" class="btn btn-primary" disabled>Predaj odgovore za ovu rundu</button>
     </div>
+
 
         <div class="results" style="margin-top:10px; margin-bottom:10px;">
         <div class="results-title">Prijavljeni igrači</div>
@@ -379,6 +381,7 @@ const newLetterBtn    = document.getElementById("new-letter");
 const timerEl         = document.getElementById("timer");
 const startTimerBtn   = document.getElementById("start-timer");
 const playerNameEl    = document.getElementById("player-name");
+const loginBtn        = document.getElementById("login-btn");
 const submitBtn       = document.getElementById("submit-answers");
 const saveRoundBtn    = document.getElementById("save-round");
 const refreshBtn      = document.getElementById("refresh-results");
@@ -397,20 +400,37 @@ let currentRound = 0;
 // === LOGIN I ULOGA (ADMIN ILI IGRAČ) ===
 let currentUserName = "";
 let isAdmin = false;
+let isLoggedIn = false;
 
-function updateRoleFromInput() {
-    currentUserName = (playerNameEl.value || "").trim();
-    isAdmin = (currentUserName === "MarkoS"); // OVDJE JE ADMIN IME
+// poziva se kad se igrač prijavi
+async function loginPlayer() {
 
-    if (isAdmin) {
-        newLetterBtn.style.display = "inline-flex";
-    } else {
-        newLetterBtn.style.display = "none";
+    if (!name) {
+        alert("Prvo upiši svoje ime.");
+        return;
     }
+
+    currentUserName = name;
+    isAdmin = (currentUserName === "MarkoS");
+    isLoggedIn = true;
+
+    // samo admin vidi gumb za novu rundu
+    newLetterBtn.style.display = isAdmin ? "inline-flex" : "none";
+
+    // dopusti slanje odgovora tek nakon prijave
+    submitBtn.disabled = false;
+
+    // možeš po želji spremiti igrača u listu players kasnije
+    alert(`Prijavljen si kao ${currentUserName}${isAdmin ? " (administrator)" : ""}.`);
 }
 
-playerNameEl.addEventListener("input", updateRoleFromInput);
+// gumb za login
+loginBtn.addEventListener("click", loginPlayer);
+
+// na početku: nismo prijavljeni, gumb za novu rundu sakriven, slanje odgovora onemogućeno
 newLetterBtn.style.display = "none";
+submitBtn.disabled = true;
+
 
 // --- 1. Timer 90 s (lokalni) ---
 let timerInterval = null;
@@ -495,17 +515,13 @@ function safeKey(str) {
 }
 
 submitBtn.addEventListener("click", async () => {
-    const name = playerNameEl.value.trim();
-    if (!name) {
-        alert("Upiši svoje ime prije slanja odgovora.");
+    if (!isLoggedIn) {
+        alert("Prvo se prijavi u igru gumbom 'Prijavi se u igru'.");
         return;
     }
 
-    currentUserName = name;
-    isAdmin = (currentUserName === "MarkoS");
-    updateRoleFromInput();
+    const name = currentUserName;
 
-    // spremi igrača u listu prijavljenih
     const playerKeyLobby = safeKey(name);
     const playerLobbyRef = ref(db, `rooms/${ROOM_ID}/players/${playerKeyLobby}`);
     await set(playerLobbyRef, {
