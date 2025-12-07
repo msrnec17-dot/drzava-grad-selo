@@ -12,7 +12,7 @@
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: center;  /* kartica u sredini ekrana */
       padding: 20px;
     }
     .app {
@@ -71,11 +71,11 @@
       white-space: nowrap;
     }
     .btn-primary {
-      background: #4f46e5;
+      background: #16a34a; /* zelena */
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+      box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
     }
-    .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+    .btn-primary:hover { background: #15803d; transform: translateY(-1px); }
     .btn-secondary {
       background: #e5e7eb;
       color: #111827;
@@ -108,14 +108,65 @@
   <!-- EKRAN 1: LOGIN -->
   <div id="login-screen" class="screen active">
     <div class="field">
-      <label for="login-name">Upiši svoje ime:</label>
+      <label for="login-name">Upiši svoje ime (prijava u igru):</label>
       <input type="text" id="login-name" placeholder="Npr. Marko, Ana..." autocomplete="off">
     </div>
-    <button id="login-btn" class="btn btn-primary">Uđi u igru</button>
+    <button id="login-btn" class="btn btn-primary">Prijavi se</button>
     <p class="info">
-      Nakon što potvrdiš ime, otvara se stranica za igru. Ime se koristi za bodove i prikaz u tablici.
+      Ovdje se igrači prijavljuju u igru. Nakon prijave otvara se stranica na kojoj ćeš igrati.
     </p>
   </div>
 
   <!-- EKRAN 2: IGRA (zasad prazno) -->
-  <div id="
+  <div id="game-screen" class="screen">
+    <p id="welcome-text" class="welcome"></p>
+    <div class="game-placeholder">
+      Ovdje će biti cijela igra (slovo, polja za odgovore, bodovi, admin...).<br>
+      U sljedećem koraku napisat ćeš točno što treba dodati.
+    </div>
+    <button id="logout-btn" class="btn btn-secondary" style="margin-top:10px;">
+      Natrag na prijavu
+    </button>
+  </div>
+</div>
+
+<script>
+  const loginScreen  = document.getElementById("login-screen");
+  const gameScreen   = document.getElementById("game-screen");
+  const loginInput   = document.getElementById("login-name");
+  const loginBtn     = document.getElementById("login-btn");
+  const logoutBtn    = document.getElementById("logout-btn");
+  const welcomeText  = document.getElementById("welcome-text");
+
+  let currentUserName = "";
+  let isAdmin = false;
+
+  function showScreen(name) {
+    if (name === "login") {
+      loginScreen.classList.add("active");
+      gameScreen.classList.remove("active");
+    } else if (name === "game") {
+      gameScreen.classList.add("active");
+      loginScreen.classList.remove("active");
+    }
+  }
+
+  loginBtn.addEventListener("click", () => {
+    const name = (loginInput.value || "").trim();
+    if (!name) {
+      alert("Molim upiši svoje ime.");
+      return;
+    }
+
+    currentUserName = name;
+    isAdmin = (currentUserName === "MarkoS");
+
+    welcomeText.textContent = `Dobrodošao, ${currentUserName}${isAdmin ? " (administrator)" : ""}!`;
+    showScreen("game");
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    currentUserName = "";
+    isAdmin = false;
+    loginInput.value = "";
+    show
