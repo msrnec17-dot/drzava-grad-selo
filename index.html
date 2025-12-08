@@ -251,12 +251,12 @@
 
 <script>
   // Firebase config [web:34][web:61]
-  const firebaseConfig={
-    const holidays=["2025-01-01","2025-01-06","2025-04-20","2025-04-21","2025-05-01","2025-05-30","2025-08-05","2025-08-15","2025-11-01","2025-12-25","2025-12-26"];
+  holidays=["2025-01-01","2025-01-06","2025-04-20","2025-04-21","2025-05-01","2025-05-30","2025-08-05","2025-08-15","2025-11-01","2025-12-25","2025-12-26"];
 function toISO(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function initHR(id){flatpickr("#"+id,{locale:"hr",dateFormat:"d.m.Y",firstDayOfWeek:1,onDayCreate:(_,__,___,day)=>{let dt=day.dateObj;let iso=toISO(dt);if(dt.getDay()==0||dt.getDay()==6)day.classList.add("weekend");if(holidays.includes(iso))day.classList.add("holiday");}});}
 initHR("actFrom");initHR("actTo");initHR("useFrom");initHR("useTo");
-
+  const firebaseConfig={
+    
     apiKey:"AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
     authDomain:"drzava-grad-selo-8d986.firebaseapp.com",
     databaseURL:"https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
