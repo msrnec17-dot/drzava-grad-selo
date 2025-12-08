@@ -82,7 +82,6 @@
     .badge-ok{background:#dcfce7;color:#166534;}
     .badge-low{background:#fee2e2;color:#991b1b;}
     .pk-summary{margin-top:8px;font-size:.85rem;color:var(--muted);}
-    .pk-ok{color:#166534;font-weight:600;}
   </style>
 </head>
 <body>
@@ -125,16 +124,20 @@
     <div style="margin-bottom:20px;">
       <h2>Dodaj aktivnost (dani + PK)</h2>
       <p class="muted" style="margin-bottom:8px;">
-        Slobodni dani: 1, 2, 3…  •  PK sati: 1.6, 3.2, 4.8, 6.4, 8.0…
+        Raspon “Od – Do” označava koliko je trajala aktivnost na kojoj si zaradio dane i/ili PK sate.
       </p>
       <div class="grid-3">
         <div class="form-group">
-          <label>Datum</label>
-          <input type="date" id="actDate">
+          <label>Od datuma</label>
+          <input type="date" id="actFrom">
+        </div>
+        <div class="form-group">
+          <label>Do datuma</label>
+          <input type="date" id="actTo">
         </div>
         <div class="form-group">
           <label>Aktivnost / opis</label>
-          <input type="text" id="actActivity" placeholder="npr. Projekt X, subota…">
+          <input type="text" id="actActivity" placeholder="npr. Projekt X, teren…">
         </div>
         <div class="form-group">
           <label>Slobodni dani</label>
@@ -191,7 +194,7 @@
       <h2>Korištenje prekovremenih sati (PK)</h2>
       <p class="muted">
         Označi aktivnosti iz kojih želiš potrošiti PK sate.  
-        Sustav uzima do 8.0 sati za 1 dan; višak ostaje na zadnjoj aktivnosti i vidi se u tablici.
+        Sustav uzima do 8.0 sati za 1 dan; višak ostaje na zadnjoj aktivnosti i vidiš ga u tablici.
       </p>
       <div id="pkList" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#f9fafb;"></div>
       <div class="pk-summary">
@@ -207,7 +210,7 @@
         <table>
           <thead>
           <tr>
-            <th>Datum</th>
+            <th>Od–Do</th>
             <th>Aktivnost</th>
             <th>Dani</th>
             <th>PK sati</th>
@@ -259,7 +262,8 @@
   const statDays=document.getElementById('statDays');
   const statPk=document.getElementById('statPk');
 
-  const actDate=document.getElementById('actDate');
+  const actFrom=document.getElementById('actFrom');
+  const actTo=document.getElementById('actTo');
   const actActivity=document.getElementById('actActivity');
   const actDaysIn=document.getElementById('actDays');
   const actPkIn=document.getElementById('actPk');
@@ -282,7 +286,6 @@
 
   let currentUser=null;
   let activities={};
-
   function to2(n){return Math.round((Number(n)||0)*100)/100;}
 
   // LOGIN
@@ -290,15 +293,15 @@
     const name=loginName.value.trim().toLowerCase();
     if(!name){alert('Upiši korisničko ime.');return;}
     loginBtn.disabled=true;
-    db.ref('vac6/users/'+name).set({username:name,createdAt:Date.now()})
-      .then(()=>{currentUser=name;localStorage.setItem('vac6_user',name);showApp();})
+    db.ref('vac7/users/'+name).set({username:name,createdAt:Date.now()})
+      .then(()=>{currentUser=name;localStorage.setItem('vac7_user',name);showApp();})
       .catch(e=>{console.error(e);alert('Greška na bazi.');loginBtn.disabled=false;});
   };
 
-  const saved=localStorage.getItem('vac6_user');
+  const saved=localStorage.getItem('vac7_user');
   if(saved){currentUser=saved;showApp();}
 
-  logoutBtn.onclick=()=>{localStorage.removeItem('vac6_user');location.reload();};
+  logoutBtn.onclick=()=>{localStorage.removeItem('vac7_user');location.reload();};
 
   function showApp(){
     userLabel.textContent=currentUser;
@@ -308,7 +311,7 @@
   }
 
   function subscribeData(){
-    const base='vac6/'+currentUser;
+    const base='vac7/'+currentUser;
 
     db.ref(base+'/activities').on('value',snap=>{
       activities={};
@@ -316,8 +319,7 @@
       useSource.innerHTML='<option value="">Odaberi…</option>';
       pkList.innerHTML='';
 
-      let totalDays=0;
-      let totalPkAll=0;
+      let totalDays=0,totalPkAll=0;
 
       snap.forEach(ch=>{
         const id=ch.key;
@@ -329,9 +331,10 @@
         totalDays+=remDays;
         totalPkAll+=remPk;
 
+        const period=(d.fromDate||'')+' – '+(d.toDate||'');
         const tr=document.createElement('tr');
         tr.innerHTML=`
-          <td>${d.date||''}</td>
+          <td>${period}</td>
           <td>${d.activity||''}</td>
           <td>${to2(d.baseDays).toFixed(2)}</td>
           <td>${to2(d.pkHours).toFixed(1)}</td>
@@ -343,7 +346,7 @@
         if(remDays>0){
           const opt=document.createElement('option');
           opt.value=id;
-          opt.textContent=`${d.date||''} – ${d.activity||''} (${to2(remDays).toFixed(2)} dana)`;
+          opt.textContent=`${period} – ${d.activity||''} (${to2(remDays).toFixed(2)} dana)`;
           useSource.appendChild(opt);
         }
 
@@ -357,7 +360,7 @@
           row.innerHTML=`
             <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;">
               <input type="checkbox" data-id="${id}" data-pk="${to2(remPk)}">
-              <span>${d.date||''} – ${d.activity||''} (${to2(remPk).toFixed(1)} h)</span>
+              <span>${period} – ${d.activity||''} (${to2(remPk).toFixed(1)} h)</span>
             </label>
           `;
           pkList.appendChild(row);
@@ -369,9 +372,7 @@
       addUseBtn.disabled=useSource.options.length<=1;
 
       updatePkSelection();
-      pkList.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
-        cb.onchange=updatePkSelection;
-      });
+      pkList.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.onchange=updatePkSelection);
     });
 
     db.ref(base+'/log').on('value',snap=>{
@@ -389,30 +390,36 @@
     });
   }
 
+  // dodaj aktivnost
   addActBtn.onclick=()=>{
     if(!currentUser){alert('Prijavi se.');return;}
-    const date=actDate.value;
+    const from=actFrom.value;
+    const to=actTo.value;
     const activity=actActivity.value.trim();
     const baseDays=Number(actDaysIn.value||0);
     const pkHours=Number(actPkIn.value||0);
     const note=actNote.value.trim();
 
-    if(!date){alert('Odaberi datum.');return;}
+    if(!from||!to){alert('Odaberi od i do datuma.');return;}
     if(baseDays<=0 && pkHours<=0){alert('Unesi barem dane ili PK.');return;}
 
-    const ref=db.ref('vac6/'+currentUser+'/activities').push();
+    const ref=db.ref('vac7/'+currentUser+'/activities').push();
     ref.set({
-      date,activity,
+      fromDate:from,
+      toDate:to,
+      activity,
       baseDays:to2(baseDays),
       pkHours:to2(pkHours),
       remainingDays:to2(baseDays),
       remainingPk:to2(pkHours),
       note,createdAt:Date.now()
     }).then(()=>{
+      actFrom.value='';actTo.value='';actActivity.value='';
       actDaysIn.value='0';actPkIn.value='0';actNote.value='';
     }).catch(e=>{console.error(e);alert('Greška pri spremanju.');});
   };
 
+  // korištenje dana
   addUseBtn.onclick=()=>{
     if(!currentUser){alert('Prijavi se.');return;}
     const from=useFrom.value;
@@ -428,14 +435,14 @@
     const rem=Number(act.remainingDays||0);
     if(days>rem && !confirm(`Na toj aktivnosti je samo ${to2(rem)} dana. Nastaviti?`))return;
 
-    const remRef=db.ref('vac6/'+currentUser+'/activities/'+srcId+'/remainingDays');
+    const remRef=db.ref('vac7/'+currentUser+'/activities/'+srcId+'/remainingDays');
     remRef.transaction(cur=>{
       const c=Number(cur||act.baseDays||0);
       const n=c-days;
       return n<0?0:to2(n);
     });
 
-    db.ref('vac6/'+currentUser+'/log').push({
+    db.ref('vac7/'+currentUser+'/log').push({
       type:'Dan',
       detail:`${from}–${to} (${useSource.options[useSource.selectedIndex].text})`,
       value:to2(days).toFixed(2),
@@ -455,7 +462,7 @@
     usePkBtn.disabled=sum<8.0;
   }
 
-  // PK -> dan, s detaljima iz kojih aktivnosti
+  // PK -> dan, uzmi do 8h, višak ostavi, log s rasponom datuma
   usePkBtn.onclick=()=>{
     if(!currentUser){alert('Prijavi se.');return;}
 
@@ -471,8 +478,7 @@
 
     let toSpend=8.0;
     const details=[];
-
-    const base='vac6/'+currentUser+'/activities/';
+    const base='vac7/'+currentUser+'/activities/';
 
     chosen.forEach(item=>{
       if(toSpend<=0) return;
@@ -482,27 +488,27 @@
       const currentRem=Number(act.remainingPk||0);
       if(currentRem<=0) return;
 
-      const willUse=Math.min(currentRem,toSpend);    // koliko trošimo s ove aktivnosti
-      const newRem=to2(currentRem-willUse);          // ostatak na aktivnosti
-
+      const willUse=Math.min(currentRem,toSpend);
+      const newRem=to2(currentRem-willUse);
       const ref=db.ref(base+item.id+'/remainingPk');
       ref.transaction(()=>newRem);
 
       if(willUse>0){
-        details.push(`${act.date||''} – ${act.activity||''} (${to2(willUse).toFixed(1)} h)`);
+        const period=(act.fromDate||'')+'–'+(act.toDate||'');
+        details.push(`${period} ${act.activity||''} (${to2(willUse).toFixed(1)} h)`);
       }
 
       toSpend=to2(toSpend-willUse);
     });
 
-    db.ref('vac6/'+currentUser+'/log').push({
+    db.ref('vac7/'+currentUser+'/log').push({
       type:'PK→dan',
       detail:'1 dan iz PK: '+details.join(', '),
       value:'1 dan',
       createdAt:Date.now()
     });
 
-    alert('Do 8.0 PK sati pretvoreno u 1 slobodan dan.\nDetalji vidiš u tablici korištenja.');
+    alert('Do 8.0 PK sati pretvoreno u 1 slobodan dan. Detalji su u tablici korištenja.');
   };
 </script>
 </body>
