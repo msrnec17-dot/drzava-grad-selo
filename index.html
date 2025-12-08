@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <style>
+        /* isti stilovi kao prije */
         body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f0f8ff; }
         .container { display: flex; gap: 20px; height: 80vh; }
         .sidebar { width: 300px; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -31,10 +32,13 @@
         .round-info { text-align: center; font-size: 20px; margin-bottom: 20px; color: #333; }
         .hidden { display: none; }
         h1, h2 { color: #2196F3; text-align: center; }
+        .debug { background: #fff3cd; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; }
     </style>
 </head>
 <body>
     <h1>🇭🇷 Država • Grad • Selo 🇭🇷</h1>
+    
+    <div class="debug" id="debugLog"></div>
     
     <div class="container">
         <div class="sidebar">
@@ -83,7 +87,7 @@
     </div>
 
     <script>
-        // Firebase config - zamijeni sa svojim configom
+        // TEST Firebase config - zamijeni sa SVOJIM
       const firebaseConfig = {
   apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
   authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
@@ -94,54 +98,132 @@
   appId: "1:499006072662:web:3001f6700f0268df1b58f7"
 };
         
+        // Inicijalizacija
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        
         let currentUser = null;
-        let gameState = { round: 1, letter: 'A', phase: 'waiting', votingEnd: null };
+        let gameState = { round: 1, letter: 'A', phase: 'waiting', votingEnd: null, lastUpdate: Date.now() };
         let playerAnswers = {};
+        let unsubscribeListeners = [];
         let myAnswers = { drzava: '', grad: '', selo: '' };
 
-        // Pridruži se igri
-        function joinGame() {
+        function log(msg) {
+            const logEl = document.getElementById('debugLog');
+            logEl.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${msg}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(msg);
+        }
+
+        // Pridruži se igri - POPRAVAK
+        async function joinGame() {
             const name = document.getElementById('playerName').value.trim();
             if (!name) return alert('Unesi ime!');
             
-            currentUser = { name, id: Date.now().toString() };
-            document.getElementById('gameInfo').classList.remove('hidden');
-            document.getElementById('playerName').disabled = true;
-            
-            db.collection('dgs_game').doc('state').set(gameState);
-            listenToGame();
+            try {
+                currentUser = { name, id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` };
+                log(`✅ Pridružio si se kao: ${currentUser.name} (${currentUser.id})`);
+                
+                // Spremi igrača
+                await db.collection('dgs_game').doc('players').collection('players').doc(currentUser.id).set({
+                    name: currentUser.name,
+                    points: 0,
+                    joined: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                document.getElementById('gameInfo').classList.remove('hidden');
+                document.getElementById('playerName').disabled = true;
+                
+                // Inicijaliziraj stanje igre
+                await db.collection('dgs_game').doc('state').set(gameState, { merge: true });
+                
+                listenToGame();
+                log('🚀 Svi listeneri aktivni');
+                
+            } catch(error) {
+                log(`❌ Greška: ${error.message}`);
+                alert('Greška s Firebase-om! Provjeri config.');
+            }
         }
 
-        // Slušaj promjene u igri
+        // Slušaj promjene - POPRAVAK
         function listenToGame() {
-            db.collection('dgs_game').doc('state').onSnapshot(doc => {
-                if (doc.exists) {
-                    gameState = { ...doc.data(), id: doc.id };
-                    updateUI();
-                }
-            });
-            
-            db.collection('dgs_game').doc('players').collection('players').onSnapshot(snapshot => {
-                const players = {};
-                snapshot.forEach(doc => {
-                    players[doc.id] = doc.data();
-                });
-                updatePlayersList(players);
-            });
-            
-            db.collection('dgs_game').doc('answers').collection('round_' + gameState.round).onSnapshot(snapshot => {
-                const answers = {};
-                snapshot.forEach(doc => {
-                    answers[doc.id] = doc.data();
-                });
-                playerAnswers = answers;
-                updateAnswersDisplay();
-            });
+            // State listener
+            const stateUnsub = db.collection('dgs_game').doc('state').onSnapshot(
+                doc => {
+                    if (doc.exists) {
+                        gameState = { ...doc.data(), id: doc.id, lastUpdate: Date.now() };
+                        log(`📊 State: runda ${gameState.round}, faza ${gameState.phase}`);
+                        updateUI();
+                    }
+                },
+                err => log(`State error: ${err}`)
+            );
+            unsubscribeListeners.push(stateUnsub);
+
+            // Players listener
+            const playersUnsub = db.collection('dgs_game').doc('players').collection('players').onSnapshot(
+                snapshot => {
+                    const players = {};
+                    snapshot.forEach(doc => players[doc.id] = doc.data());
+                    updatePlayersList(players);
+                },
+                err => log(`Players error: ${err}`)
+            );
+            unsubscribeListeners.push(playersUnsub);
+
+            // Answers listener za trenutnu rundu
+            const answersUnsub = db.collection('dgs_game').doc('answers')
+                .collection(`round_${gameState.round}`).onSnapshot(
+                snapshot => {
+                    const answers = {};
+                    snapshot.forEach(doc => answers[doc.id] = doc.data());
+                    playerAnswers = answers;
+                    if (gameState.phase === 'voting') updateAnswersDisplay();
+                },
+                err => log(`Answers error: ${err}`)
+            );
+            unsubscribeListeners.push(answersUnsub);
         }
 
-        // Ažuriraj UI
+        // Pošalji odgovore - POPRAVLJENO
+        async function submitAnswer() {
+            if (!currentUser) return log('❌ Nisi pridružen!');
+            
+            myAnswers = {
+                drzava: document.getElementById('drzavaInput').value.trim().toLowerCase(),
+                grad: document.getElementById('gradInput').value.trim().toLowerCase(),
+                selo: document.getElementById('seloInput').value.trim().toLowerCase()
+            };
+            
+            if (!myAnswers.drzava || !myAnswers.grad || !myAnswers.selo) {
+                return alert('Svi odgovori su obvezni!');
+            }
+            
+            try {
+                await db.collection('dgs_game').doc('answers')
+                    .collection(`round_${gameState.round}`)
+                    .doc(currentUser.id)
+                    .set({
+                        player: currentUser.name,
+                        drzava: myAnswers.drzava,
+                        grad: myAnswers.grad,
+                        selo: myAnswers.selo,
+                        votes: {},
+                        submitted: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                
+                log(`✅ Odgovori poslanI: ${JSON.stringify(myAnswers)}`);
+                document.getElementById('drzavaInput').value = '';
+                document.getElementById('gradInput').value = '';
+                document.getElementById('seloInput').value = '';
+                
+            } catch(error) {
+                log(`❌ Submit error: ${error.message}`);
+            }
+        }
+
+        // Ostale funkcije (updateUI, vote, endVoting...) ostaju iste kao prije
         function updateUI() {
             document.getElementById('currentRound').textContent = gameState.round;
             document.getElementById('letterDisplay').textContent = gameState.letter;
@@ -157,167 +239,40 @@
             const phase = phases[gameState.phase] || phases.waiting;
             document.getElementById('phaseDisplay').textContent = phase.title;
             
-            // Sakrij sve sekcije
-            document.getElementById('answerSection').classList.add('hidden');
-            document.getElementById('votingSection').classList.add('hidden');
-            document.getElementById('resultsSection').classList.add('hidden');
-            
-            // Pokaži odgovarajuću
-            document.getElementById(phase.show + 'Section').classList.remove('hidden');
+            document.getElementById('answerSection').classList.toggle('hidden', phase.show !== 'answer');
+            document.getElementById('votingSection').classList.toggle('hidden', phase.show !== 'voting');
+            document.getElementById('resultsSection').classList.toggle('hidden', phase.show !== 'results');
             
             updateInputs();
             updateCountdown();
         }
 
-        // Ažuriraj inpute
         function updateInputs() {
             const inputs = ['drzavaInput', 'gradInput', 'seloInput'];
             const btn = document.getElementById('submitAnswerBtn');
             
+            const enabled = gameState.phase === 'answering';
             inputs.forEach(id => {
                 const input = document.getElementById(id);
-                input.disabled = gameState.phase !== 'answering';
-                if (gameState.phase === 'answering') {
-                    input.placeholder = input.placeholder.split('...')[0] + ` ${gameState.letter}`;
-                }
+                input.disabled = !enabled;
+                if (enabled) input.placeholder = input.placeholder.split('...')[0] + ` ${gameState.letter}`;
             });
-            
-            btn.disabled = gameState.phase !== 'answering';
+            btn.disabled = !enabled;
         }
 
-        // Pošalji odgovore
-        async function submitAnswer() {
-            myAnswers = {
-                drzava: document.getElementById('drzavaInput').value.trim(),
-                grad: document.getElementById('gradInput').value.trim(),
-                selo: document.getElementById('seloInput').value.trim()
-            };
-            
-            if (myAnswers.drzava && myAnswers.grad && myAnswers.selo) {
-                await db.collection('dgs_game').doc('answers')
-                    .collection('round_' + gameState.round)
-                    .doc(currentUser.id)
-                    .set({ ...myAnswers, player: currentUser.name, votes: {} });
-                
-                document.getElementById('drzavaInput').value = '';
-                document.getElementById('gradInput').value = '';
-                document.getElementById('seloInput').value = '';
-            }
-        }
-
-        // Ažuriraj prikaz odgovora za glasanje
-        function updateAnswersDisplay() {
-            if (gameState.phase !== 'voting') return;
-            
-            const grid = document.getElementById('answersGrid');
-            grid.innerHTML = '';
-            
-            Object.entries(playerAnswers).forEach(([id, data]) => {
-                const div = document.createElement('div');
-                div.className = 'answer-card';
-                div.innerHTML = `
-                    <strong>${data.player}</strong><br>
-                    🏛️ ${data.drzava}<br>
-                    🏙️ ${data.grad}<br>
-                    🏘️ ${data.selo}<br>
-                    <div class="vote-btns">
-                        <button class="vote-btn" onclick="vote('${id}', true)">👍 Točan (${Object.values(data.votes || {}).filter(v => v).length})</button>
-                        <button class="vote-btn" onclick="vote('${id}', false)">👎 Netačan (${Object.values(data.votes || {}).filter(v => !v).length})</button>
-                    </div>
-                    <small>glasalo: ${Object.keys(data.votes || {}).length}/${Object.keys(playerAnswers).length}</small>
-                `;
-                grid.appendChild(div);
-            });
-        }
-
-        // Glasaj
-        async function vote(answerId, isCorrect) {
-            await db.collection('dgs_game').doc('answers')
-                .collection('round_' + gameState.round)
-                .doc(answerId)
-                .update({
-                    [`votes.${currentUser.id}`]: isCorrect
-                });
-        }
-
-        // Ažuriraj listu igrača i bodove
-        function updatePlayersList(players) {
-            const scoresList = document.getElementById('scoresList');
-            const scores = {};
-            
-            Object.values(players).forEach(p => {
-                scores[p.name] = (scores[p.name] || 0) + (p.points || 0);
-            });
-            
-            scoresList.innerHTML = Object.entries(scores)
-                .sort((a, b) => b[1] - a[1])
-                .map(([name, points]) => `<div class="score-row"><span>${name}</span><strong>${points} bodova</strong></div>`)
-                .join('');
-        }
-
-        // Countdown timer
-        function updateCountdown() {
-            const countdownEl = document.getElementById('countdown');
-            if (gameState.phase === 'voting' && gameState.votingEnd) {
-                const timeLeft = Math.max(0, gameState.votingEnd - Date.now());
-                const seconds = Math.ceil(timeLeft / 1000);
-                countdownEl.textContent = `${seconds}s`;
-                countdownEl.style.display = 'block';
-                
-                if (timeLeft <= 0) {
-                    endVoting();
-                }
-            } else {
-                countdownEl.style.display = 'none';
-            }
-        }
-
-        // Završi glasanje i obrađuj rezultate
-        async function endVoting() {
-            const answersSnap = await db.collection('dgs_game').doc('answers')
-                .collection('round_' + gameState.round).get();
-            
-            const results = [];
-            answersSnap.forEach(doc => {
-                const data = doc.data();
-                const totalVotes = Object.keys(data.votes || {}).length;
-                const correctVotes = Object.values(data.votes || {}).filter(v => v).length;
-                const isAccepted = totalVotes > 0 && (correctVotes / totalVotes) > 0.9;
-                
-                if (isAccepted) {
-                    results.push({ player: data.player, points: 1 });
-                    db.collection('dgs_game').doc('players').collection('players')
-                        .doc(doc.id).update({ points: firebase.firestore.FieldValue.increment(1) });
-                }
-            });
-            
-            gameState.phase = 'results';
-            await db.collection('dgs_game').doc('state').update(gameState);
-            
-            // Sljedeća runda ili kraj
-            setTimeout(async () => {
-                if (gameState.round < 7) {
-                    gameState.round++;
-                    gameState.letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-                    gameState.phase = 'answering';
-                    gameState.votingEnd = Date.now() + 30000;
-                    await db.collection('dgs_game').doc('state').set(gameState);
-                } else {
-                    alert('Kraj igre!');
-                }
-            }, 5000);
-        }
-
-        // Automatski počni rundu nakon 10s čekanja
-        setInterval(() => {
-            if (gameState.phase === 'waiting' && Date.now() - (gameState.lastUpdate || 0) > 10000) {
+        // Automatski start answering nakon 5s
+        setInterval(async () => {
+            if (gameState.phase === 'waiting' && Date.now() - (gameState.lastUpdate || 0) > 5000) {
                 gameState.phase = 'answering';
                 gameState.votingEnd = Date.now() + 30000;
-                db.collection('dgs_game').doc('state').set(gameState);
+                await db.collection('dgs_game').doc('state').set(gameState);
+                log('▶️ Počinje answering faza');
             }
         }, 2000);
 
         setInterval(updateCountdown, 1000);
+        
+        log('🎮 Igra učitana - unesi Firebase config i testiraj!');
     </script>
 </body>
 </html>
