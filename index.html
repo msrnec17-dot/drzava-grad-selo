@@ -1,34 +1,90 @@
 <!DOCTYPE html>
 <html lang="hr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Država – grad – selo</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:linear-gradient(135deg,#f5f7fa,#e4ecf7);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-.app{background:#fff;max-width:960px;width:100%;border-radius:16px;box-shadow:0 10px 25px rgba(15,23,42,.12);padding:22px}
-h1{text-align:center;font-size:1.8rem;color:#111827}
-.subtitle{text-align:center;color:#6b7280;margin-bottom:14px}
-.screen{display:none}.screen.active{display:block}
-.field{display:flex;flex-direction:column;margin-bottom:8px}
-label{font-size:.9rem;color:#374151}
-input[type=text]{border:1px solid #d1d5db;border-radius:8px;padding:6px 10px;font-size:.9rem}
-.btn{border:none;cursor:pointer;padding:8px 14px;border-radius:999px;transition:background .2s,transform .05s}
-.btn-primary{background:#16a34a;color:#fff}.btn-primary:hover{background:#15803d;transform:translateY(-1px)}
-.btn-secondary{background:#e5e7eb;color:#111827}.btn-secondary:hover{background:#d1d5db}
-table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:10px}
-th,td{border:1px solid #e5e7eb;padding:4px 6px;text-align:left}th{background:#f3f4f6}.center{text-align:center}
-.timer-box{margin-top:10px;padding:8px 10px;border-radius:10px;background:#fee2e2;display:inline-flex;align-items:center;gap:6px}
-.timer-label{font-size:.85rem;color:#4b5563}.timer-value{font-family:monospace;font-weight:700;color:#b91c1c;font-size:1.1rem}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Država Grad Selo - Multiplayer</title>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f0f8ff; }
+        .container { display: flex; gap: 20px; height: 80vh; }
+        .sidebar { width: 300px; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .game-area { flex: 1; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-y: auto; }
+        .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+        .player-card { border: 2px solid #ddd; border-radius: 8px; padding: 15px; text-align: center; }
+        .player-active { border-color: #4CAF50; background: #e8f5e8; }
+        .input-group { margin: 10px 0; }
+        input, button { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { background: #2196F3; color: white; border: none; cursor: pointer; }
+        button:hover { background: #1976D2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .answers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 20px 0; }
+        .answer-card { border: 2px solid #ddd; border-radius: 8px; padding: 15px; position: relative; }
+        .answer-voted { border-color: #4CAF50; background: #e8f5e8; }
+        .vote-btns { margin-top: 10px; display: flex; gap: 5px; }
+        .vote-btn { flex: 1; padding: 5px; font-size: 14px; }
+        .countdown { font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0; color: #FF5722; }
+        .scores { margin-top: 20px; }
+        .score-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+        .round-info { text-align: center; font-size: 20px; margin-bottom: 20px; color: #333; }
+        .hidden { display: none; }
+        h1, h2 { color: #2196F3; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🇭🇷 Država • Grad • Selo 🇭🇷</h1>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="input-group">
+                <input type="text" id="playerName" placeholder="Tvoje ime" maxlength="20">
+                <button onclick="joinGame()">Pridruži se igri</button>
+            </div>
+            
+            <div id="gameInfo" class="hidden">
+                <h3>Trenutna runda: <span id="currentRound">1</span>/7</h3>
+                <div class="round-info">
+                    <div id="currentLetter" style="font-size: 48px; font-weight: bold; color: #FF5722;">A</div>
+                    <div>Slovo: <span id="letterDisplay">-</span></div>
+                </div>
+                
+                <div id="phaseDisplay">Priprema igre...</div>
+                <div class="countdown" id="countdown" style="display:none;"></div>
+                
+                <div class="scores">
+                    <h4>Bodovi igrača:</h4>
+                    <div id="scoresList"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <div id="answerSection">
+                <div class="input-group">
+                    <input type="text" id="drzavaInput" placeholder="Država na slovo..." disabled>
+                    <input type="text" id="gradInput" placeholder="Grad na slovo..." disabled>
+                    <input type="text" id="seloInput" placeholder="Selo na slovo..." disabled>
+                    <button id="submitAnswerBtn" onclick="submitAnswer()" disabled>Pošalji odgovore</button>
+                </div>
+            </div>
+            
+            <div id="votingSection" class="hidden">
+                <h3>Glasaj za odgovore (30s)</h3>
+                <div class="answers-grid" id="answersGrid"></div>
+            </div>
+            
+            <div id="resultsSection" class="hidden">
+                <h3>Rezultati runde</h3>
+                <div id="roundResults"></div>
+            </div>
+        </div>
+    </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-
-// === Tvoj Firebase config ===
-const firebaseConfig = {
+    <script>
+        // Firebase config - zamijeni sa svojim configom
+      const firebaseConfig = {
   apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
   authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
   databaseURL: "https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
@@ -37,242 +93,231 @@ const firebaseConfig = {
   messagingSenderId: "499006072662",
   appId: "1:499006072662:web:3001f6700f0268df1b58f7"
 };
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let currentUser = null;
+        let gameState = { round: 1, letter: 'A', phase: 'waiting', votingEnd: null };
+        let playerAnswers = {};
+        let myAnswers = { drzava: '', grad: '', selo: '' };
 
-// --- konstante i varijable ---
-const ROOM_ID="glavnaSoba";
-const MAX_ROUNDS=7;
-let currentUser="",currentRound=1,gamePhase="lobby",countdown=0,timerInterval=null;
-let letters="ABCČĆDDŽEFGHIJKLLJMNNJOPRSŠTUVZŽ".split("");
+        // Pridruži se igri
+        function joinGame() {
+            const name = document.getElementById('playerName').value.trim();
+            if (!name) return alert('Unesi ime!');
+            
+            currentUser = { name, id: Date.now().toString() };
+            document.getElementById('gameInfo').classList.remove('hidden');
+            document.getElementById('playerName').disabled = true;
+            
+            db.collection('dgs_game').doc('state').set(gameState);
+            listenToGame();
+        }
 
-// --- reference u bazi ---
-const playersRef=ref(db,`rooms/${ROOM_ID}/players`);
-const roundsRef=ref(db,`rooms/${ROOM_ID}/rounds`);
+        // Slušaj promjene u igri
+        function listenToGame() {
+            db.collection('dgs_game').doc('state').onSnapshot(doc => {
+                if (doc.exists) {
+                    gameState = { ...doc.data(), id: doc.id };
+                    updateUI();
+                }
+            });
+            
+            db.collection('dgs_game').doc('players').collection('players').onSnapshot(snapshot => {
+                const players = {};
+                snapshot.forEach(doc => {
+                    players[doc.id] = doc.data();
+                });
+                updatePlayersList(players);
+            });
+            
+            db.collection('dgs_game').doc('answers').collection('round_' + gameState.round).onSnapshot(snapshot => {
+                const answers = {};
+                snapshot.forEach(doc => {
+                    answers[doc.id] = doc.data();
+                });
+                playerAnswers = answers;
+                updateAnswersDisplay();
+            });
+        }
 
-const loginScr=document.getElementById("login-screen");
-const gameScr=document.getElementById("game-screen");
-const loginInput=document.getElementById("login-name");
-const loginBtn=document.getElementById("login-btn");
-const welcomeText=document.getElementById("welcome-text");
-const playersBody=document.getElementById("players-body");
-const timerBox=document.getElementById("timer-box");
-const countdownEl=document.getElementById("countdown");
+        // Ažuriraj UI
+        function updateUI() {
+            document.getElementById('currentRound').textContent = gameState.round;
+            document.getElementById('letterDisplay').textContent = gameState.letter;
+            document.getElementById('currentLetter').textContent = gameState.letter;
+            
+            const phases = {
+                'waiting': { title: 'Čekamo igrače...', show: 'answer' },
+                'answering': { title: 'Piši odgovore (30s)', show: 'answer' },
+                'voting': { title: 'Glasaj (30s)', show: 'voting' },
+                'results': { title: 'Rezultati...', show: 'results' }
+            };
+            
+            const phase = phases[gameState.phase] || phases.waiting;
+            document.getElementById('phaseDisplay').textContent = phase.title;
+            
+            // Sakrij sve sekcije
+            document.getElementById('answerSection').classList.add('hidden');
+            document.getElementById('votingSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            
+            // Pokaži odgovarajuću
+            document.getElementById(phase.show + 'Section').classList.remove('hidden');
+            
+            updateInputs();
+            updateCountdown();
+        }
 
-function safeKey(str){return(str||"").replace(/[.#$\[\]]/g,"_")}
-function randomLetter(){return letters[Math.floor(Math.random()*letters.length)]}
-function showScreen(scr){scr==="login"?(loginScr.classList.add("active"),gameScr.classList.remove("active")):(loginScr.classList.remove("active"),gameScr.classList.add("active"))}
+        // Ažuriraj inpute
+        function updateInputs() {
+            const inputs = ['drzavaInput', 'gradInput', 'seloInput'];
+            const btn = document.getElementById('submitAnswerBtn');
+            
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                input.disabled = gameState.phase !== 'answering';
+                if (gameState.phase === 'answering') {
+                    input.placeholder = input.placeholder.split('...')[0] + ` ${gameState.letter}`;
+                }
+            });
+            
+            btn.disabled = gameState.phase !== 'answering';
+        }
 
-function renderPlayers(players){
- playersBody.innerHTML="";
- if(!players)return;
- const list=Object.values(players).sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0));
- list.forEach((p,i)=>{
-  const tr=document.createElement("tr");
-  tr.innerHTML=`<td class='center'>${i+1}</td><td>${p.name}</td>`;
-  const td=document.createElement("td");td.className="center";
-  const btn=document.createElement("button");btn.className="btn btn-primary";
-  btn.textContent=p.ready?"Spreman":"Pokaži znanje";btn.disabled=p.ready||(p.name!==currentUser);btn.style.opacity=p.ready?"0.6":"1";
-  if(p.name===currentUser&&!p.ready){
-    btn.onclick=async()=>{await set(ref(db,`rooms/${ROOM_ID}/players/${safeKey(p.name)}`),{name:p.name,joinedAt:p.joinedAt||Date.now(),ready:true});};
-  }
-  td.appendChild(btn);tr.appendChild(td);playersBody.appendChild(tr);
- });
-}
+        // Pošalji odgovore
+        async function submitAnswer() {
+            myAnswers = {
+                drzava: document.getElementById('drzavaInput').value.trim(),
+                grad: document.getElementById('gradInput').value.trim(),
+                selo: document.getElementById('seloInput').value.trim()
+            };
+            
+            if (myAnswers.drzava && myAnswers.grad && myAnswers.selo) {
+                await db.collection('dgs_game').doc('answers')
+                    .collection('round_' + gameState.round)
+                    .doc(currentUser.id)
+                    .set({ ...myAnswers, player: currentUser.name, votes: {} });
+                
+                document.getElementById('drzavaInput').value = '';
+                document.getElementById('gradInput').value = '';
+                document.getElementById('seloInput').value = '';
+            }
+        }
 
-function startTimer(sec,label,cb){
- clearInterval(timerInterval);countdown=sec;
- document.querySelector(".timer-label").textContent=label;
- timerBox.style.display="inline-flex";updateTimer();
- timerInterval=setInterval(()=>{countdown--;updateTimer();if(countdown<=0){clearInterval(timerInterval);cb&&cb();}},1000);
-}
-function updateTimer(){const m=String(Math.floor(countdown/60)).padStart(2,"0"),s=String(countdown%60).padStart(2,"0");countdownEl.textContent=`${m}:${s}`;}
+        // Ažuriraj prikaz odgovora za glasanje
+        function updateAnswersDisplay() {
+            if (gameState.phase !== 'voting') return;
+            
+            const grid = document.getElementById('answersGrid');
+            grid.innerHTML = '';
+            
+            Object.entries(playerAnswers).forEach(([id, data]) => {
+                const div = document.createElement('div');
+                div.className = 'answer-card';
+                div.innerHTML = `
+                    <strong>${data.player}</strong><br>
+                    🏛️ ${data.drzava}<br>
+                    🏙️ ${data.grad}<br>
+                    🏘️ ${data.selo}<br>
+                    <div class="vote-btns">
+                        <button class="vote-btn" onclick="vote('${id}', true)">👍 Točan (${Object.values(data.votes || {}).filter(v => v).length})</button>
+                        <button class="vote-btn" onclick="vote('${id}', false)">👎 Netačan (${Object.values(data.votes || {}).filter(v => !v).length})</button>
+                    </div>
+                    <small>glasalo: ${Object.keys(data.votes || {}).length}/${Object.keys(playerAnswers).length}</small>
+                `;
+                grid.appendChild(div);
+            });
+        }
 
-function startWriting(letter){
- gamePhase="writing";
- document.getElementById("current-letter").textContent=letter;
- document.getElementById("game-fields").style.display="block";
- document.getElementById("voting-panel").style.display="none";
- startTimer(120,"Preostalo vrijeme:",()=>endWriting());
-}
-async function endWriting(){document.getElementById("game-fields").style.display="none";checkAllAnswers();}
-function checkAllAnswers(){
- get(ref(db,`rooms/${ROOM_ID}/rounds/round_${currentRound}`)).then(snap=>{
-   const answers=snap.val()||{};const keys=Object.keys(answers);
-   get(playersRef).then(pSnap=>{
-     const total=Object.keys(pSnap.val()||{}).length;
-     if(keys.length===total){startVotingPhase(answers);}
-   });
- });
-}
-function startVotingPhase(answers){
- gamePhase="voting";
- const panel=document.getElementById("voting-panel");
- panel.style.display="block";
- panel.innerHTML="<h3>Glasanje o točnosti odgovora</h3><p>Glasaj 👍 ako je odgovor točan, 👎 ako nije (90 %+ = točan).</p>";
+        // Glasaj
+        async function vote(answerId, isCorrect) {
+            await db.collection('dgs_game').doc('answers')
+                .collection('round_' + gameState.round)
+                .doc(answerId)
+                .update({
+                    [`votes.${currentUser.id}`]: isCorrect
+                });
+        }
 
- const cats=['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
- let html="<table><thead><tr><th>Kategorija</th>";
- Object.values(answers).forEach(p=>{html+=`<th>${p.name}</th>`;});
- html+="</tr></thead><tbody>";
- cats.forEach(cat=>{
-   html+=`<tr><th>${cat.charAt(0).toUpperCase()+cat.slice(1)}</th>`;
-   Object.entries(answers).forEach(([plKey,p])=>{
-     const a=p.answers?.[cat]||"—";
-     html+=`<td><span>${a}</span><br>
-       <button class='vote-btn' data-cat='${cat}' data-player='${plKey}' data-v='yes'>👍</button>
-       <button class='vote-btn' data-cat='${cat}' data-player='${plKey}' data-v='no'>👎</button>
-       <span id='vote_${cat}_${plKey}' style='font-size:.8rem;color:#555'></span>
-     </td>`;
-   });
-   html+="</tr>";
- });
- html+="</tbody></table>";
- panel.innerHTML+=html;
- panel.querySelectorAll(".vote-btn").forEach(b=>{
-   b.onclick=()=>{
-     const {cat,player,v}=b.dataset;
-     const vr=ref(db,`rooms/${ROOM_ID}/votes/round_${currentRound}/${cat}/${player}/${safeKey(currentUser)}`);
-     set(vr,{vote:v});
-   };
- });
- startTimer(30,"Glasanje traje:",()=>endVoting());
- trackVotes();
-}
+        // Ažuriraj listu igrača i bodove
+        function updatePlayersList(players) {
+            const scoresList = document.getElementById('scoresList');
+            const scores = {};
+            
+            Object.values(players).forEach(p => {
+                scores[p.name] = (scores[p.name] || 0) + (p.points || 0);
+            });
+            
+            scoresList.innerHTML = Object.entries(scores)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, points]) => `<div class="score-row"><span>${name}</span><strong>${points} bodova</strong></div>`)
+                .join('');
+        }
 
-function trackVotes(){
- const votesRef=ref(db,`rooms/${ROOM_ID}/votes/round_${currentRound}`);
- onValue(votesRef,(snap)=>{
-   const votes=snap.val()||{};
-   const scores={};
-   Object.entries(votes).forEach(([cat,players])=>{
-     Object.entries(players).forEach(([pl,vs])=>{
-       const total=Object.keys(vs).length;
-       const yes=Object.values(vs).filter(v=>v.vote==="yes").length;
-       const percent=total?Math.round((yes/total)*100):0;
-       const el=document.getElementById(`vote_${cat}_${pl}`);
-       if(el) el.textContent=`${percent}%`;
-       if(percent>=90) scores[pl]=(scores[pl]||0)+1;
-     });
-   });
-   updateScores(scores);
- });
-}
+        // Countdown timer
+        function updateCountdown() {
+            const countdownEl = document.getElementById('countdown');
+            if (gameState.phase === 'voting' && gameState.votingEnd) {
+                const timeLeft = Math.max(0, gameState.votingEnd - Date.now());
+                const seconds = Math.ceil(timeLeft / 1000);
+                countdownEl.textContent = `${seconds}s`;
+                countdownEl.style.display = 'block';
+                
+                if (timeLeft <= 0) {
+                    endVoting();
+                }
+            } else {
+                countdownEl.style.display = 'none';
+            }
+        }
 
-function updateScores(scores){
- const panel=document.getElementById("voting-panel");
- let html="<h4>Trenutni bodovi</h4><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
- Object.entries(scores).forEach(([p,b])=>{html+=`<tr><td>${p}</td><td>${b}</td></tr>`;});
- html+="</table>";
- const old=document.getElementById("live-scores"); if(old) old.remove();
- const d=document.createElement("div");d.id="live-scores";d.innerHTML=html;panel.appendChild(d);
-}
+        // Završi glasanje i obrađuj rezultate
+        async function endVoting() {
+            const answersSnap = await db.collection('dgs_game').doc('answers')
+                .collection('round_' + gameState.round).get();
+            
+            const results = [];
+            answersSnap.forEach(doc => {
+                const data = doc.data();
+                const totalVotes = Object.keys(data.votes || {}).length;
+                const correctVotes = Object.values(data.votes || {}).filter(v => v).length;
+                const isAccepted = totalVotes > 0 && (correctVotes / totalVotes) > 0.9;
+                
+                if (isAccepted) {
+                    results.push({ player: data.player, points: 1 });
+                    db.collection('dgs_game').doc('players').collection('players')
+                        .doc(doc.id).update({ points: firebase.firestore.FieldValue.increment(1) });
+                }
+            });
+            
+            gameState.phase = 'results';
+            await db.collection('dgs_game').doc('state').update(gameState);
+            
+            // Sljedeća runda ili kraj
+            setTimeout(async () => {
+                if (gameState.round < 7) {
+                    gameState.round++;
+                    gameState.letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+                    gameState.phase = 'answering';
+                    gameState.votingEnd = Date.now() + 30000;
+                    await db.collection('dgs_game').doc('state').set(gameState);
+                } else {
+                    alert('Kraj igre!');
+                }
+            }, 5000);
+        }
 
-function endVoting(){
- document.getElementById("voting-panel").innerHTML+="<p><b>Runda završena!</b></p>";
- if(currentRound<MAX_ROUNDS){
-   currentRound++;
-   startNextRound();
- }else showFinal();
-}
+        // Automatski počni rundu nakon 10s čekanja
+        setInterval(() => {
+            if (gameState.phase === 'waiting' && Date.now() - (gameState.lastUpdate || 0) > 10000) {
+                gameState.phase = 'answering';
+                gameState.votingEnd = Date.now() + 30000;
+                db.collection('dgs_game').doc('state').set(gameState);
+            }
+        }, 2000);
 
-function startNextRound(){
- const nl=randomLetter();
- document.getElementById("voting-panel").style.display="none";
- startTimer(15,`Runda ${currentRound} počinje za:`,()=>startWriting(nl));
-}
-
-function showFinal(){
- get(ref(db,`rooms/${ROOM_ID}/votes`)).then(snap=>{
-   const all=snap.val()||{},points={};
-   Object.values(all).forEach(round=>{
-     Object.values(round).forEach(cat=>{
-       Object.entries(cat).forEach(([pl,vs])=>{
-         const tot=Object.keys(vs).length,yes=Object.values(vs).filter(v=>v.vote==="yes").length;
-         if(tot && yes/tot>=.9) points[pl]=(points[pl]||0)+1;
-       });
-     });
-   });
-   const sorted=Object.entries(points).sort((a,b)=>b[1]-a[1]);
-   let html="<h2>Konačni rezultati</h2><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
-   sorted.forEach(([n,b])=>html+=`<tr><td>${n}</td><td>${b}</td></tr>`);html+="</table>";
-   const p=document.getElementById("voting-panel");p.innerHTML=html;p.style.display="block";
- });
-}
-
-// === sluša igrače ===
-onValue(playersRef,(snap)=>{
- const data=snap.val()||{};renderPlayers(data);
- const list=Object.values(data);const allReady=list.length>0&&list.every(p=>p.ready);
- if(allReady&&gamePhase==="lobby"){
-   startTimer(15,"Igra počinje za:",()=>{
-     const l=randomLetter();startWriting(l);
-   });
- }
-});
-
-// login
-loginBtn.onclick=async()=>{
- const n=loginInput.value.trim();if(!n){alert("Upiši ime!");return;}
- currentUser=n;
- await set(ref(db,`rooms/${ROOM_ID}/players/${safeKey(n)}`),{name:n,joinedAt:Date.now(),ready:false});
- welcomeText.textContent=`Dobrodošao, ${n}!`;showScreen("game");
-};
-
-// predaja odgovora
-document.getElementById("submit-answers").onclick=async()=>{
- if(!currentUser){alert("Nisi prijavljen!");return;}
- const a={};["drzava","grad","selo","rijeka","planina","zivotinja","biljka","stvar","boja","zanimanje","ime"].forEach(id=>a[id]=document.getElementById(id).value.trim());
- await set(ref(db,`rooms/${ROOM_ID}/rounds/round_${currentRound}/${safeKey(currentUser)}`),
-  {name:currentUser,letter:document.getElementById("current-letter").textContent,answers:a,submittedAt:Date.now()});
- alert("Odgovori poslani!");
-};
-</script>
-</head>
-
-<body>
-<div class="app">
-<h1>Država – grad – selo</h1>
-<p class="subtitle">Online multiplayer – 7 rundi</p>
-
-<!-- LOGIN -->
-<div id="login-screen" class="screen active">
-<div class="field"><label for="login-name">Upiši ime:</label><input id="login-name" placeholder="Npr. Marko"></div>
-<button id="login-btn" class="btn btn-primary">Prijavi se</button>
-<p style="font-size:.85rem;color:#666;margin-top:8px;">Kada svi kliknu “Pokaži znanje”, igra počinje.</p>
-</div>
-
-<!-- IGRA -->
-<div id="game-screen" class="screen">
-<p id="welcome-text"></p>
-<table><thead><tr><th style="width:40px;">#</th><th>Ime</th><th class="center">Pokaži znanje</th></tr></thead><tbody id="players-body"></tbody></table>
-
-<div id="timer-box" class="timer-box" style="display:none;">
-<span class="timer-label">Čekanje...</span>
-<span class="timer-value" id="countdown">00:00</span>
-</div>
-
-<!-- Polja -->
-<div id="game-fields" style="display:none;margin-top:12px;">
-<h3>Runda <span id="round-num">1</span> – Slovo: <span id="current-letter" style="font-weight:bold;font-size:1.2rem;">A</span></h3>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-<div class="field"><label>Država</label><input id="drzava"></div>
-<div class="field"><label>Grad</label><input id="grad"></div>
-<div class="field"><label>Selo</label><input id="selo"></div>
-<div class="field"><label>Rijeka</label><input id="rijeka"></div>
-<div class="field"><label>Planina</label><input id="planina"></div>
-<div class="field"><label>Životinja</label><input id="zivotinja"></div>
-<div class="field"><label>Biljka</label><input id="biljka"></div>
-<div class="field"><label>Stvar</label><input id="stvar"></div>
-<div class="field"><label>Boja</label><input id="boja"></div>
-<div class="field"><label>Zanimanje</label><input id="zanimanje"></div>
-<div class="field"><label>Ime</label><input id="ime"></div>
-</div>
-<button id="submit-answers" class="btn btn-primary" style="margin-top:10px;width:100%">Predaj odgovore</button>
-</div>
-
-<div id="voting-panel" style="display:none;margin-top:16px;"></div>
-</div>
-</div>
+        setInterval(updateCountdown, 1000);
+    </script>
 </body>
 </html>
