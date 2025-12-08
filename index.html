@@ -101,4 +101,552 @@
             max-width: 400px;
             margin: 60px auto;
             background: #ffffff;
-            border-radius
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .muted { color: #6b7280; font-size: 0.85rem; }
+        .header-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logout {
+            background: #ef4444;
+        }
+        .logout:hover {
+            background: #b91c1c;
+        }
+        .summary {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .overtime-calc {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+            font-size: 0.85rem;
+        }
+        .loading { opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen" class="login-box">
+    <h1>📅 Evidencija slobodnih dana</h1>
+    <p style="margin: 10px 0;">Prijava s korisničkim imenom (bez lozinke).</p>
+    <label for="login-username">Korisničko ime</label>
+    <input type="text" id="login-username" placeholder="npr. marko" />
+    <button id="login-btn">Prijava</button>
+    <p class="muted" style="margin-top:8px;">
+        Svaki korisnik vidi samo svoje slobodne dane + prekovremene sate.
+    </p>
+</div>
+
+<div id="app" class="app" style="display:none;">
+    <div class="header-line">
+        <div>
+            <h1>📅 Evidencija slobodnih dana</h1>
+            <p class="muted">Prijavljen kao: <span id="current-user-label"></span></p>
+            <div id="total-summary" class="summary" style="display:none;">
+                <strong>Ukupno preostalo:</strong> <span id="total-days"></span> dana
+            </div>
+        </div>
+        <button id="logout-btn" class="logout">Odjava</button>
+    </div>
+
+    <!-- PREKOVREMENI SATI -->
+    <div class="section">
+        <h2>⏰ Prekovremeni sati</h2>
+        <p class="muted">1 sat prekovremena = 1.6 sati slobodnog. 8 sati slobodnog = 1 dan.</p>
+
+        <div class="row">
+            <div class="col-3">
+                <label for="overtime-date">Datum rada</label>
+                <input type="date" id="overtime-date" />
+            </div>
+            <div class="col-3">
+                <label for="overtime-hours">Prekovremeni sati</label>
+                <input type="number" id="overtime-hours" min="0" step="0.25" placeholder="npr. 2.5" />
+            </div>
+            <div class="col-6">
+                <label for="overtime-note">Napomena</label>
+                <textarea id="overtime-note" placeholder="npr. subota na projektu X"></textarea>
+            </div>
+            <div class="col-12">
+                <button id="add-overtime-btn">Dodaj prekovremene sate</button>
+            </div>
+        </div>
+        <div id="overtime-calc" class="overtime-calc" style="display:none;">
+            <strong>Računica:</strong> <span id="calc-input"></span> sati × 1.6 = <span id="calc-free"></span> sati slobodnog
+            (<span id="calc-days"></span> dana)
+        </div>
+
+        <h3>Popis prekovremenih sati</h3>
+        <table id="overtime-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Sati PK</th>
+                    <th>Slobodno sati</th>
+                    <th>Dana ekvivalent</th>
+                    <th>Napomena</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- ZARAĐENI SLOBODNI DANI -->
+    <div class="section">
+        <h2>📈 Zarađeni slobodni dani</h2>
+        <p class="muted">Iz prekovremenih sati ili direktno dodani (godišnji, plaćeni dopust...).</p>
+
+        <div class="row">
+            <div class="col-3">
+                <label for="earned-date">Datum (kada si zaradio)</label>
+                <input type="date" id="earned-date" />
+            </div>
+            <div class="col-3">
+                <label for="earned-type">Vrsta</label>
+                <select id="earned-type">
+                    <option value="prekovremeni">Iz prekovremenih sati ✓</option>
+                    <option value="godišnji">Godišnji odmor</option>
+                    <option value="plaćeni dopust">Plaćeni dopust</option>
+                    <option value="slobodan dan">Slobodan dan</option>
+                    <option value="ostalo">Ostalo</option>
+                </select>
+            </div>
+            <div class="col-3">
+                <label for="earned-days">Broj dana</label>
+                <input type="number" id="earned-days" min="0" step="0.1" placeholder="npr. 1.6 ili 3.2" />
+            </div>
+            <div class="col-3">
+                <label for="earned-hours">ili sati</label>
+                <input type="number" id="earned-hours" min="0" step="0.1" placeholder="npr. 12.8" />
+            </div>
+            <div class="col-12">
+                <label for="earned-note">Napomena</label>
+                <textarea id="earned-note" placeholder="npr. 3 dana + 1.6h iz prekovremenih"></textarea>
+            </div>
+            <div class="col-12">
+                <button id="add-earned-btn">Dodaj zarađene dane</button>
+            </div>
+        </div>
+
+        <h3>Popis zarađenih dana</h3>
+        <table id="earned-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Vrsta</th>
+                    <th>Ukupno dana</th>
+                    <th>Preostalo</th>
+                    <th>Napomena</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- KORIŠTENJE -->
+    <div class="section">
+        <h2>📅 Korištenje slobodnih dana</h2>
+        <div class="row">
+            <div class="col-3">
+                <label for="use-from">Od datuma</label>
+                <input type="date" id="use-from" />
+            </div>
+            <div class="col-3">
+                <label for="use-to">Do datuma</label>
+                <input type="date" id="use-to" />
+            </div>
+            <div class="col-3">
+                <label for="use-days">Broj dana</label>
+                <input type="number" id="use-days" min="0" step="0.1" placeholder="npr. 1.6" />
+            </div>
+            <div class="col-3">
+                <label for="use-source">Skidaj sa unosa</label>
+                <select id="use-source"></select>
+            </div>
+            <div class="col-12">
+                <label for="use-note">Napomena</label>
+                <textarea id="use-note" placeholder="npr. bolovanje, privatne obaveze"></textarea>
+            </div>
+            <div class="col-12">
+                <button id="add-use-btn">Dodaj korištenje</button>
+            </div>
+        </div>
+
+        <h3>Popis korištenja</h3>
+        <table id="used-table">
+            <thead>
+                <tr>
+                    <th>Od</th>
+                    <th>Do</th>
+                    <th>Broj dana</th>
+                    <th>Iz unosa</th>
+                    <th>Napomena</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // === Firebase config (tvoj projekt) ===
+    const firebaseConfig = {
+        apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
+        authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
+        databaseURL: "https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "drzava-grad-selo-8d986",
+        storageBucket: "drzava-grad-selo-8d986.firebasestorage.app",
+        messagingSenderId: "499006072662",
+        appId: "1:499006072662:web:3001f6700f0268df1b58f7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // === Konstantne ===
+    const OVERTIME_FACTOR = 1.6;  // 1 PK sat = 1.6 slobodnih sati
+    const HOURS_PER_DAY = 8;      // 1 dan = 8 sati
+
+    // === DOM elementi ===
+    const loginScreen = document.getElementById('login-screen');
+    const appDiv = document.getElementById('app');
+    const loginUsernameInput = document.getElementById('login-username');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const currentUserLabel = document.getElementById('current-user-label');
+    const totalSummary = document.getElementById('total-summary');
+    const totalDaysSpan = document.getElementById('total-days');
+
+    // Overtime
+    const overtimeDateInput = document.getElementById('overtime-date');
+    const overtimeHoursInput = document.getElementById('overtime-hours');
+    const overtimeNoteInput = document.getElementById('overtime-note');
+    const addOvertimeBtn = document.getElementById('add-overtime-btn');
+    const overtimeCalcDiv = document.getElementById('overtime-calc');
+    const calcInputSpan = document.getElementById('calc-input');
+    const calcFreeSpan = document.getElementById('calc-free');
+    const calcDaysSpan = document.getElementById('calc-days');
+    const overtimeTableBody = document.querySelector('#overtime-table tbody');
+
+    // Earned
+    const earnedDateInput = document.getElementById('earned-date');
+    const earnedTypeSelect = document.getElementById('earned-type');
+    const earnedDaysInput = document.getElementById('earned-days');
+    const earnedHoursInput = document.getElementById('earned-hours');
+    const earnedNoteInput = document.getElementById('earned-note');
+    const addEarnedBtn = document.getElementById('add-earned-btn');
+    const earnedTableBody = document.querySelector('#earned-table tbody');
+
+    // Used
+    const useFromInput = document.getElementById('use-from');
+    const useToInput = document.getElementById('use-to');
+    const useDaysInput = document.getElementById('use-days');
+    const useSourceSelect = document.getElementById('use-source');
+    const useNoteInput = document.getElementById('use-note');
+    const addUseBtn = document.getElementById('add-use-btn');
+    const usedTableBody = document.querySelector('#used-table tbody');
+
+    let currentUser = null;
+    let earnedItemsCache = {};
+    let listeners = {};
+
+    // === LOGIN (ISPRAVLJENO) ===
+    loginBtn.addEventListener('click', () => {
+        const username = loginUsernameInput.value.trim().toLowerCase();
+        if (!username) return alert('Upiši korisničko ime.');
+        
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Povezujem...';
+        
+        // Čekaj da se korisnik stavi u Firebase PRIJE showAppForUser
+        db.ref('vacationApp/users/' + username).set({
+            username, 
+            createdAt: Date.now()
+        }).then(() => {
+            localStorage.setItem('vacation_username', username);
+            showAppForUser(username);
+        }).catch((err) => {
+            console.error('Login error:', err);
+            alert('Greška pri prijavi. Provjeri internet konekciju.');
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Prijava';
+        });
+    });
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('vacation_username');
+        
+        // Očisti sve listenere
+        Object.values(listeners).forEach(ref => ref.off());
+        listeners = {};
+        
+        // Reset UI
+        earnedTableBody.innerHTML = '';
+        usedTableBody.innerHTML = '';
+        overtimeTableBody.innerHTML = '';
+        useSourceSelect.innerHTML = '';
+        totalSummary.style.display = 'none';
+        
+        appDiv.style.display = 'none';
+        loginScreen.style.display = 'block';
+        loginUsernameInput.value = '';
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Prijava';
+    }
+
+    logoutBtn.addEventListener('click', logout);
+
+    function showAppForUser(username) {
+        currentUser = username;
+        currentUserLabel.textContent = username;
+        loginScreen.style.display = 'none';
+        appDiv.style.display = 'block';
+        subscribeAll();
+    }
+
+    // === AUTO-LOGIN (ISPRAVLJENO) ===
+    const savedUser = localStorage.getItem('vacation_username');
+    if (savedUser) {
+        db.ref('vacationApp/users/' + savedUser).once('value').then((snap) => {
+            if (snap.exists()) {
+                showAppForUser(savedUser);
+            } else {
+                localStorage.removeItem('vacation_username');
+            }
+        }).catch(() => {
+            localStorage.removeItem('vacation_username');
+        });
+    }
+
+    // === OVERTIME CALCULATOR ===
+    overtimeHoursInput.addEventListener('input', updateOvertimeCalc);
+    function updateOvertimeCalc() {
+        const hours = Number(overtimeHoursInput.value) || 0;
+        const freeHours = hours * OVERTIME_FACTOR;
+        const days = freeHours / HOURS_PER_DAY;
+        
+        calcInputSpan.textContent = hours.toFixed(2);
+        calcFreeSpan.textContent = freeHours.toFixed(1);
+        calcDaysSpan.textContent = days.toFixed(2);
+        
+        overtimeCalcDiv.style.display = hours > 0 ? 'block' : 'none';
+    }
+
+    // === SUBSCRIBE ===
+    function subscribeAll() {
+        subscribeOvertime();
+        subscribeEarned();
+        subscribeUsed();
+    }
+
+    function subscribeOvertime() {
+        const ref = db.ref('vacationApp/overtime/' + currentUser);
+        listeners.overtime = ref.on('value', (snap) => {
+            overtimeTableBody.innerHTML = '';
+            snap.forEach((child) => {
+                const data = child.val();
+                const tr = document.createElement('tr');
+                const freeHours = (data.hours || 0) * OVERTIME_FACTOR;
+                const days = freeHours / HOURS_PER_DAY;
+                
+                tr.innerHTML = `
+                    <td>${data.date || ''}</td>
+                    <td>${(data.hours || 0).toFixed(2)}</td>
+                    <td>${freeHours.toFixed(1)}</td>
+                    <td>${days.toFixed(2)}</td>
+                    <td>${data.note || ''}</td>
+                `;
+                overtimeTableBody.appendChild(tr);
+            });
+        });
+    }
+
+    function subscribeEarned() {
+        const ref = db.ref('vacationApp/earnedDays/' + currentUser);
+        listeners.earned = ref.on('value', (snap) => {
+            earnedTableBody.innerHTML = '';
+            earnedItemsCache = {};
+            let totalRemaining = 0;
+            
+            const options = [];
+            snap.forEach((child) => {
+                const id = child.key;
+                const data = child.val();
+                earnedItemsCache[id] = data;
+                
+                const remaining = Number(data.remainingDays || data.days || 0);
+                totalRemaining += remaining;
+                
+                const tr = document.createElement('tr');
+                const badgeClass = remaining <= 0 ? 'badge-low' : 'badge-ok';
+                
+                tr.innerHTML = `
+                    <td>${data.dateEarned || ''}</td>
+                    <td>${data.type || ''}</td>
+                    <td>${Number(data.days || 0).toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}">${remaining.toFixed(2)}</span></td>
+                    <td>${data.note || ''}</td>
+                `;
+                earnedTableBody.appendChild(tr);
+                
+                options.push({
+                    id, 
+                    label: `${data.dateEarned || ''} – ${data.type || ''} (${remaining.toFixed(2)} preostalo)`, 
+                    remaining
+                });
+            });
+            
+            // Update totals
+            totalDaysSpan.textContent = totalRemaining.toFixed(2);
+            totalSummary.style.display = totalRemaining > 0 ? 'block' : 'none';
+            
+            // Update source select
+            useSourceSelect.innerHTML = '';
+            if (options.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Nema zarađenih dana';
+                useSourceSelect.appendChild(opt);
+                addUseBtn.disabled = true;
+            } else {
+                addUseBtn.disabled = false;
+                options.sort((a,b) => b.remaining - a.remaining).forEach(o => {
+                    const opt = document.createElement('option');
+                    opt.value = o.id;
+                    opt.textContent = o.label;
+                    useSourceSelect.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    function subscribeUsed() {
+        const ref = db.ref('vacationApp/usedDays/' + currentUser);
+        listeners.used = ref.on('value', (snap) => {
+            usedTableBody.innerHTML = '';
+            snap.forEach((child) => {
+                const data = child.val();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${data.fromDate || ''}</td>
+                    <td>${data.toDate || ''}</td>
+                    <td>${Number(data.days || 0).toFixed(2)}</td>
+                    <td>${data.sourceEarnedLabel || ''}</td>
+                    <td>${data.note || ''}</td>
+                `;
+                usedTableBody.appendChild(tr);
+            });
+        });
+    }
+
+    // === ADD OVERTIME ===
+    addOvertimeBtn.addEventListener('click', () => {
+        if (!currentUser) return;
+        const date = overtimeDateInput.value;
+        const hours = Number(overtimeHoursInput.value);
+        const note = overtimeNoteInput.value.trim();
+        
+        if (!date) return alert('Odaberi datum.');
+        if (!hours || hours <= 0) return alert('Upiši prekovremene sate.');
+        
+        db.ref('vacationApp/overtime/' + currentUser).push({
+            date, hours, note, createdAt: Date.now()
+        }).then(() => {
+            overtimeDateInput.value = '';
+            overtimeHoursInput.value = '';
+            overtimeNoteInput.value = '';
+            updateOvertimeCalc();
+        }).catch(err => alert('Greška: ' + err.message));
+    });
+
+    // === ADD EARNED ===
+    addEarnedBtn.addEventListener('click', () => {
+        if (!currentUser) return;
+        const date = earnedDateInput.value;
+        const type = earnedTypeSelect.value;
+        let days = Number(earnedDaysInput.value);
+        const hours = Number(earnedHoursInput.value);
+        const note = earnedNoteInput.value.trim();
+        
+        if (!date) return alert('Odaberi datum.');
+        if (!days && !hours) return alert('Upiši dane ILI sate.');
+        if (hours) days = hours / HOURS_PER_DAY;
+        
+        db.ref('vacationApp/earnedDays/' + currentUser).push({
+            dateEarned: date,
+            type,
+            days: parseFloat(days.toFixed(2)),
+            remainingDays: parseFloat(days.toFixed(2)),
+            note,
+            createdAt: Date.now()
+        }).then(() => {
+            earnedDateInput.value = '';
+            earnedDaysInput.value = '';
+            earnedHoursInput.value = '';
+            earnedNoteInput.value = '';
+        }).catch(err => alert('Greška: ' + err.message));
+    });
+
+    // === ADD USED ===
+    addUseBtn.addEventListener('click', () => {
+        if (!currentUser) return;
+        const fromDate = useFromInput.value;
+        const toDate = useToInput.value;
+        const days = Number(useDaysInput.value);
+        const sourceId = useSourceSelect.value;
+        const note = useNoteInput.value.trim();
+        
+        if (!fromDate || !toDate) return alert('Odaberi raspon datuma.');
+        if (!days || days <= 0) return alert('Upiši broj dana.');
+        if (!sourceId) return alert('Odaberi zarađeni unos.');
+        
+        const source = earnedItemsCache[sourceId];
+        if (!source) return alert('Odabrani unos više ne postoji.');
+        
+        const remaining = Number(source.remainingDays || source.days || 0);
+        if (days > remaining) {
+            if (!confirm(`Preostalo je samo ${remaining.toFixed(2)} dana na tom unosu. Nastaviti?`)) {
+                return;
+            }
+        }
+        
+        // Smanji remainingDays (transakcija)
+        const earnedRef = db.ref('vacationApp/earnedDays/' + currentUser + '/' + sourceId + '/remainingDays');
+        earnedRef.transaction(current => {
+            const cur = Number(current || source.days || 0);
+            return Math.max(0, cur - days);
+        });
+        
+        // Dodaj used
+        const sourceLabel = useSourceSelect.selectedOptions[0]?.text || '';
+        db.ref('vacationApp/usedDays/' + currentUser).push({
+            fromDate, 
+            toDate, 
+            days: parseFloat(days.toFixed(2)),
+            sourceEarnedId: sourceId,
+            sourceEarnedLabel: sourceLabel,
+            note, 
+            createdAt: Date.now()
+        }).then(() => {
+            useFromInput.value = '';
+            useToInput.value = '';
+            useDaysInput.value = '';
+            useNoteInput.value = '';
+        }).catch(err => alert('Greška: ' + err.message));
+    });
+</script>
+
+</body>
+</html>
