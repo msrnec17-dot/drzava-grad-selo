@@ -121,11 +121,11 @@
       </div>
     </div>
 
-    <!-- AKTIVNOSTI: DAN + PK U ISTOM RETKU -->
+    <!-- AKTIVNOSTI -->
     <div style="margin-bottom:20px;">
       <h2>Dodaj aktivnost (dani + PK)</h2>
       <p class="muted" style="margin-bottom:8px;">
-        Dan: cijeli slobodni dan (1, 2, 3…). Prekovremeni sati (PK) idu u koracima 1.6; 3.2; 4.8; 6.4; 8.0…
+        Slobodni dani: 1, 2, 3…  •  PK sati: 1.6, 3.2, 4.8, 6.4, 8.0…
       </p>
       <div class="grid-3">
         <div class="form-group">
@@ -141,7 +141,7 @@
           <input type="number" id="actDays" step="1" min="0" value="0">
         </div>
         <div class="form-group">
-          <label>PK sati (1.6 / 3.2 / 4.8 / 6.4 / 8…)</label>
+          <label>PK sati</label>
           <input type="number" id="actPk" step="0.1" min="0" value="0">
         </div>
         <div class="form-group">
@@ -167,7 +167,7 @@
           <input type="date" id="useTo">
         </div>
         <div class="form-group">
-          <label>Broj dana (1, 2… ili 0.5)</label>
+          <label>Broj dana</label>
           <input type="number" id="useDays" step="0.5" min="0">
         </div>
         <div class="form-group">
@@ -190,13 +190,12 @@
     <div style="margin-bottom:20px;">
       <h2>Korištenje prekovremenih sati (PK)</h2>
       <p class="muted">
-        Odaberi aktivnosti iz kojih želiš potrošiti PK sate.  
-        Kada ukupno označiš točno 8.0 sati, možeš ih pretvoriti u 1 slobodan dan.
+        Označi aktivnosti iz kojih želiš potrošiti PK sate.  
+        Aplikacija uzima do 8.0 sati za 1 dan; višak (npr. 1.6h) ostaje na zadnjoj aktivnosti.
       </p>
       <div id="pkList" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#f9fafb;"></div>
       <div class="pk-summary">
-        Označeno PK sati: <span id="pkSelected">0.0</span> /
-        <span class="pk-ok">8.0</span> → 1 slobodan dan
+        Označeno PK sati: <span id="pkSelected">0.0</span>  (sustav će uzeti do 8.0h za 1 dan)
       </div>
       <button id="usePkBtn" class="btn" disabled>Pretvori označene PK u 1 dan</button>
     </div>
@@ -238,7 +237,7 @@
 </div>
 
 <script>
-  // Firebase config (tvoj projekt)
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
     authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
@@ -251,97 +250,99 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database(); // [web:34][web:61]
 
-  // DOM
-  const loginCard=document.getElementById('loginCard');
-  const appCard=document.getElementById('appCard');
-  const loginName=document.getElementById('loginName');
-  const loginBtn=document.getElementById('loginBtn');
-  const logoutBtn=document.getElementById('logoutBtn');
-  const userLabel=document.getElementById('userLabel');
+  const loginCard = document.getElementById('loginCard');
+  const appCard   = document.getElementById('appCard');
+  const loginName = document.getElementById('loginName');
+  const loginBtn  = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userLabel = document.getElementById('userLabel');
 
-  const statDays=document.getElementById('statDays');
-  const statPk=document.getElementById('statPk');
+  const statDays = document.getElementById('statDays');
+  const statPk   = document.getElementById('statPk');
 
-  const actDate=document.getElementById('actDate');
-  const actActivity=document.getElementById('actActivity');
-  const actDays=document.getElementById('actDays');
-  const actPk=document.getElementById('actPk');
-  const actNote=document.getElementById('actNote');
-  const addActBtn=document.getElementById('addActBtn');
+  const actDate     = document.getElementById('actDate');
+  const actActivity = document.getElementById('actActivity');
+  const actDaysIn   = document.getElementById('actDays');
+  const actPkIn     = document.getElementById('actPk');
+  const actNote     = document.getElementById('actNote');
+  const addActBtn   = document.getElementById('addActBtn');
 
-  const useFrom=document.getElementById('useFrom');
-  const useTo=document.getElementById('useTo');
-  const useDays=document.getElementById('useDays');
-  const useSource=document.getElementById('useSource');
-  const useNote=document.getElementById('useNote');
-  const addUseBtn=document.getElementById('addUseBtn');
+  const useFrom   = document.getElementById('useFrom');
+  const useTo     = document.getElementById('useTo');
+  const useDays   = document.getElementById('useDays');
+  const useSource = document.getElementById('useSource');
+  const useNote   = document.getElementById('useNote');
+  const addUseBtn = document.getElementById('addUseBtn');
 
-  const pkList=document.getElementById('pkList');
-  const pkSelected=document.getElementById('pkSelected');
-  const usePkBtn=document.getElementById('usePkBtn');
+  const pkList      = document.getElementById('pkList');
+  const pkSelected  = document.getElementById('pkSelected');
+  const usePkBtn    = document.getElementById('usePkBtn');
 
-  const actTableBody=document.getElementById('actTableBody');
-  const logTableBody=document.getElementById('logTableBody');
+  const actTableBody = document.getElementById('actTableBody');
+  const logTableBody = document.getElementById('logTableBody');
 
-  let currentUser=null;
-  let activities={}; // id -> data
+  let currentUser = null;
+  let activities  = {};
 
   function to2(n){return Math.round((Number(n)||0)*100)/100;}
 
   // LOGIN
-  loginBtn.onclick=()=>{
-    const name=loginName.value.trim().toLowerCase();
-    if(!name){alert('Upiši korisničko ime.');return;}
-    loginBtn.disabled=true;
-    db.ref('vac4/users/'+name).set({username:name,createdAt:Date.now()})
+  loginBtn.onclick = () => {
+    const name = loginName.value.trim().toLowerCase();
+    if(!name){ alert('Upiši korisničko ime.'); return; }
+    loginBtn.disabled = true;
+    db.ref('vac5/users/'+name).set({username:name,createdAt:Date.now()})
       .then(()=>{
-        currentUser=name;
-        localStorage.setItem('vac4_user',name);
+        currentUser = name;
+        localStorage.setItem('vac5_user',name);
         showApp();
       })
-      .catch(e=>{console.error(e);alert('Greška na bazi.');loginBtn.disabled=false;});
+      .catch(e=>{
+        console.error(e);
+        alert('Greška na bazi.');
+        loginBtn.disabled = false;
+      });
   };
 
-  const saved=localStorage.getItem('vac4_user');
-  if(saved){currentUser=saved;showApp();}
+  const saved = localStorage.getItem('vac5_user');
+  if(saved){ currentUser = saved; showApp(); }
 
-  logoutBtn.onclick=()=>{localStorage.removeItem('vac4_user');location.reload();};
+  logoutBtn.onclick = () => { localStorage.removeItem('vac5_user'); location.reload(); };
 
   function showApp(){
-    userLabel.textContent=currentUser;
-    loginCard.style.display='none';
-    appCard.style.display='block';
+    userLabel.textContent = currentUser;
+    loginCard.style.display = 'none';
+    appCard.style.display   = 'block';
     subscribeData();
   }
 
   function subscribeData(){
-    const base='vac4/'+currentUser;
+    const base = 'vac5/'+currentUser;
 
     // aktivnosti
-    db.ref(base+'/activities').on('value',snap=>{
-      activities={};
-      actTableBody.innerHTML='';
-      useSource.innerHTML='<option value="">Odaberi…</option>';
-      pkList.innerHTML='';
+    db.ref(base+'/activities').on('value', snap => {
+      activities = {};
+      actTableBody.innerHTML = '';
+      useSource.innerHTML = '<option value="">Odaberi…</option>';
+      pkList.innerHTML = '';
 
-      let totalDays=0;
-      let totalPk=0;
+      let totalDays = 0;
+      let totalPkAll = 0;
 
-      snap.forEach(ch=>{
-        const id=ch.key;
-        const d=ch.val()||{};
-        activities[id]=d;
+      snap.forEach(ch => {
+        const id = ch.key;
+        const d  = ch.val() || {};
+        activities[id] = d;
 
-        const remDays=Number(d.remainingDays||0);
-        const remPk=Number(d.remainingPk||0);
-        totalDays+=remDays;
-        totalPk+=remPk;
+        const remDays = Number(d.remainingDays || 0);
+        const remPk   = Number(d.remainingPk || 0);
+        totalDays  += remDays;
+        totalPkAll += remPk;
 
-        // tablica aktivnosti
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${d.date||''}</td>
-          <td>${d.activity||''}</td>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.date || ''}</td>
+          <td>${d.activity || ''}</td>
           <td>${to2(d.baseDays).toFixed(2)}</td>
           <td>${to2(d.pkHours).toFixed(1)}</td>
           <td><span class="badge ${remDays>0?'badge-ok':'badge-low'}">${to2(remDays).toFixed(2)}</span></td>
@@ -349,52 +350,50 @@
         `;
         actTableBody.appendChild(tr);
 
-        // select za dane
         if(remDays>0){
-          const opt=document.createElement('option');
-          opt.value=id;
-          opt.textContent=`${d.date||''} – ${d.activity||''} (${to2(remDays).toFixed(2)} dana)`;
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = `${d.date || ''} – ${d.activity || ''} (${to2(remDays).toFixed(2)} dana)`;
           useSource.appendChild(opt);
         }
 
-        // lista za PK
         if(remPk>0){
-          const row=document.createElement('div');
+          const row = document.createElement('div');
           row.style.display='flex';
           row.style.alignItems='center';
           row.style.justifyContent='space-between';
           row.style.padding='4px 6px';
           row.style.borderBottom='1px solid #e5e7eb';
-          row.innerHTML=`
+          row.innerHTML = `
             <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;">
               <input type="checkbox" data-id="${id}" data-pk="${to2(remPk)}">
-              <span>${d.date||''} – ${d.activity||''} (${to2(remPk).toFixed(1)} h)</span>
+              <span>${d.date || ''} – ${d.activity || ''} (${to2(remPk).toFixed(1)} h)</span>
             </label>
           `;
           pkList.appendChild(row);
         }
       });
 
-      statDays.textContent=to2(totalDays).toFixed(2);
-      statPk.textContent=to2(totalPk).toFixed(1);
-      addUseBtn.disabled=useSource.options.length<=1;
+      statDays.textContent = to2(totalDays).toFixed(2);
+      statPk.textContent   = to2(totalPkAll).toFixed(1);
+      addUseBtn.disabled   = useSource.options.length <= 1;
 
-      updatePkSelection(); // reset zbroja
+      updatePkSelection();
       pkList.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
-        cb.onchange=updatePkSelection;
+        cb.onchange = updatePkSelection;
       });
     });
 
-    // log korištenja
-    db.ref(base+'/log').on('value',snap=>{
-      logTableBody.innerHTML='';
-      snap.forEach(ch=>{
-        const d=ch.val()||{};
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${d.type||''}</td>
-          <td>${d.detail||''}</td>
-          <td>${d.value||''}</td>
+    // log
+    db.ref(base+'/log').on('value', snap => {
+      logTableBody.innerHTML = '';
+      snap.forEach(ch => {
+        const d = ch.val() || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.type || ''}</td>
+          <td>${d.detail || ''}</td>
+          <td>${d.value || ''}</td>
         `;
         logTableBody.appendChild(tr);
       });
@@ -402,57 +401,58 @@
   }
 
   // dodaj aktivnost
-  addActBtn.onclick=()=>{
-    if(!currentUser){alert('Prijavi se.');return;}
-    const date=actDate.value;
-    const activity=actActivity.value.trim();
-    const baseDays=Number(actDays.value||0);
-    const pkHours=Number(actPk.value||0);
-    const note=actNote.value.trim();
+  addActBtn.onclick = () => {
+    if(!currentUser){ alert('Prijavi se.'); return; }
+    const date = actDate.value;
+    const activity = actActivity.value.trim();
+    const baseDays = Number(actDaysIn.value || 0);
+    const pkHours  = Number(actPkIn.value || 0);
+    const note     = actNote.value.trim();
 
-    if(!date){alert('Odaberi datum.');return;}
-    if(baseDays<=0 && pkHours<=0){alert('Unesi barem dane ili PK sate.');return;}
+    if(!date){ alert('Odaberi datum.'); return; }
+    if(baseDays<=0 && pkHours<=0){ alert('Unesi barem dane ili PK.'); return; }
 
-    const ref=db.ref('vac4/'+currentUser+'/activities').push();
+    const ref = db.ref('vac5/'+currentUser+'/activities').push();
     ref.set({
-      date,activity,
-      baseDays:to2(baseDays),
-      pkHours:to2(pkHours),
-      remainingDays:to2(baseDays),
-      remainingPk:to2(pkHours),
+      date,
+      activity,
+      baseDays: to2(baseDays),
+      pkHours:  to2(pkHours),
+      remainingDays: to2(baseDays),
+      remainingPk:   to2(pkHours),
       note,
-      createdAt:Date.now()
+      createdAt: Date.now()
     }).then(()=>{
-      actDays.value='0';
-      actPk.value='0';
+      actDaysIn.value='0';
+      actPkIn.value='0';
       actNote.value='';
     }).catch(e=>{console.error(e);alert('Greška pri spremanju.');});
   };
 
   // korištenje dana
-  addUseBtn.onclick=()=>{
-    if(!currentUser){alert('Prijavi se.');return;}
-    const from=useFrom.value;
-    const to=useTo.value;
-    const days=Number(useDays.value||0);
-    const srcId=useSource.value;
-    const note=useNote.value.trim();
+  addUseBtn.onclick = () => {
+    if(!currentUser){ alert('Prijavi se.'); return; }
+    const from = useFrom.value;
+    const to   = useTo.value;
+    const days = Number(useDays.value || 0);
+    const srcId= useSource.value;
+    const note = useNote.value.trim();
 
-    if(!from||!to||days<=0||!srcId){alert('Popuni sva polja.');return;}
+    if(!from||!to||days<=0||!srcId){ alert('Popuni sva polja.'); return; }
 
-    const act=activities[srcId];
-    if(!act){alert('Aktivnost ne postoji.');return;}
-    const rem=Number(act.remainingDays||0);
-    if(days>rem && !confirm(`Na toj aktivnosti je samo ${to2(rem)} dana. Nastaviti?`))return;
+    const act = activities[srcId];
+    if(!act){ alert('Aktivnost ne postoji.'); return; }
+    const rem = Number(act.remainingDays || 0);
+    if(days>rem && !confirm(`Na toj aktivnosti je samo ${to2(rem)} dana. Nastaviti?`)) return;
 
-    const remRef=db.ref('vac4/'+currentUser+'/activities/'+srcId+'/remainingDays');
+    const remRef = db.ref('vac5/'+currentUser+'/activities/'+srcId+'/remainingDays');
     remRef.transaction(cur=>{
-      const c=Number(cur||act.baseDays||0);
-      const n=c-days;
-      return n<0?0:to2(n);
+      const c = Number(cur || act.baseDays || 0);
+      const n = c - days;
+      return n<0 ? 0 : to2(n);
     });
 
-    db.ref('vac4/'+currentUser+'/log').push({
+    db.ref('vac5/'+currentUser+'/log').push({
       type:'Dan',
       detail:`${from}–${to} (${useSource.options[useSource.selectedIndex].text})`,
       value:to2(days).toFixed(2),
@@ -463,49 +463,65 @@
     useFrom.value='';useTo.value='';useDays.value='';useNote.value='';
   };
 
-  // PK – zbroj označenih
+  // PK zbroj označenih
   function updatePkSelection(){
     let sum=0;
     pkList.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
       if(cb.checked) sum+=Number(cb.dataset.pk||0);
     });
     sum=to2(sum);
-    pkSelected.textContent=sum.toFixed(1);
-    usePkBtn.disabled=sum!==8.0; // aktivno samo kad je točno 8.0
+    pkSelected.textContent = sum.toFixed(1);
+    usePkBtn.disabled = sum < 8.0; // aktivan kad ima barem 8h
   }
 
-  // korištenje PK (8h = 1 dan)
-  usePkBtn.onclick=()=>{
-    if(!currentUser){alert('Prijavi se.');return;}
-    let sum=0;
-    const selected=[];
+  // korištenje PK: uzmi do 8h, višak ostavi
+  usePkBtn.onclick = () => {
+    if(!currentUser){ alert('Prijavi se.'); return; }
+
+    // skupimo označene aktivnosti
+    const chosen = [];
     pkList.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
       if(cb.checked){
-        sum+=Number(cb.dataset.pk||0);
-        selected.push(cb.dataset.id);
+        chosen.push({ id: cb.dataset.id, pk: Number(cb.dataset.pk||0) });
       }
     });
-    sum=to2(sum);
-    if(sum!==8.0){alert('Mora biti označeno točno 8.0 PK sati.');return;}
+    if(chosen.length===0){ alert('Označi barem jednu aktivnost.'); return; }
 
-    // za svaku označenu aktivnost potrošimo SVE njezine remainingPk
-    selected.forEach(id=>{
-      const act=activities[id];
-      if(!act)return;
-      const remPk=Number(act.remainingPk||0);
-      const ref=db.ref('vac4/'+currentUser+'/activities/'+id+'/remainingPk');
-      ref.transaction(()=>0); // trošimo sve označene PK iz tih aktivnosti
+    let totalPk = chosen.reduce((s,c)=>s+c.pk,0);
+    totalPk = to2(totalPk);
+    if(totalPk < 8.0){
+      alert('Treba ukupno barem 8.0 PK sati (trenutno: '+totalPk.toFixed(1)+').');
+      return;
+    }
+
+    let toSpend = 8.0; // trošimo max 8h za 1 dan
+
+    chosen.forEach(item=>{
+      if(toSpend<=0) return;
+      const act = activities[item.id];
+      if(!act) return;
+
+      const currentRem = Number(act.remainingPk || 0);
+      if(currentRem<=0) return;
+
+      const willUse = Math.min(currentRem, toSpend);   // koliko trošimo s ove aktivnosti
+      const newRem  = to2(currentRem - willUse);       // ostatak PK na aktivnosti
+
+      const ref = db.ref('vac5/'+currentUser+'/activities/'+item.id+'/remainingPk');
+      ref.transaction(()=> newRem);
+
+      toSpend = to2(toSpend - willUse);                // još koliko treba potrošiti do 8h
     });
 
-    // u log dodaj 1 dan iz PK
-    db.ref('vac4/'+currentUser+'/log').push({
+    // zapiši 1 dan iz PK
+    db.ref('vac5/'+currentUser+'/log').push({
       type:'PK→dan',
-      detail:'Pretvoreno 8.0 PK sati u 1 slobodan dan',
+      detail:'Pretvoreno do 8.0 PK sati u 1 slobodan dan (višak PK ostaje).',
       value:'1 dan',
       createdAt:Date.now()
     });
 
-    alert('8.0 PK sati pretvoreno u 1 slobodan dan. Zabilježeno u logu.');
+    alert('Do 8.0 PK sati pretvoreno u 1 slobodan dan. Ostatak ostaje za ubuduće.');
   };
 </script>
 </body>
