@@ -5,67 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Država – grad – selo</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-background: linear-gradient(135deg, #f5f7fa, #e4ecf7);
-min-height: 100vh;
-display: flex;
-justify-content: center;
-align-items: center;
-padding: 20px;
-}
-.app {
-background: #ffffff;
-max-width: 960px;
-width: 100%;
-border-radius: 16px;
-box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
-padding: 22px 22px 26px;
-}
-h1 {
-text-align: center;
-font-size: 1.8rem;
-color: #111827;
-}
-.subtitle {
-text-align: center;
-color: #6b7280;
-margin-bottom: 14px;
-}
-.screen { display: none; }
-.screen.active { display: block; }
-.field {
-display: flex;
-flex-direction: column;
-margin-bottom: 8px;
-}
-label { font-size: 0.9rem; color: #374151; }
-input[type="text"] {
-border: 1px solid #d1d5db;
-border-radius: 8px;
-padding: 6px 10px;
-font-size: 0.9rem;
-}
-.btn {
-border: none; cursor: pointer;
-padding: 8px 14px; border-radius: 999px;
-transition: background 0.2s, transform 0.05s;
-}
-.btn-primary { background: #16a34a; color: white; }
-.btn-primary:hover { background: #15803d; transform: translateY(-1px); }
-.btn-secondary { background: #e5e7eb; color: #111827; }
-.btn-secondary:hover { background: #d1d5db; }
-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 10px; }
-th, td { border: 1px solid #e5e7eb; padding: 4px 6px; text-align: left; }
-th { background: #f3f4f6; }
-.center { text-align:center; }
-.timer-box {
-margin-top: 10px; padding: 8px 10px; border-radius: 10px;
-background: #fee2e2; display: inline-flex; align-items: center; gap: 6px;
-}
-.timer-label { font-size: 0.85rem; color: #4b5563; }
-.timer-value { font-family: monospace; font-weight: bold; color: #b91c1c; font-size: 1.1rem; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:linear-gradient(135deg,#f5f7fa,#e4ecf7);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.app{background:#fff;max-width:960px;width:100%;border-radius:16px;box-shadow:0 10px 25px rgba(15,23,42,.12);padding:22px}
+h1{text-align:center;font-size:1.8rem;color:#111827}
+.subtitle{text-align:center;color:#6b7280;margin-bottom:14px}
+.screen{display:none}.screen.active{display:block}
+.field{display:flex;flex-direction:column;margin-bottom:8px}
+label{font-size:.9rem;color:#374151}
+input[type=text]{border:1px solid #d1d5db;border-radius:8px;padding:6px 10px;font-size:.9rem}
+.btn{border:none;cursor:pointer;padding:8px 14px;border-radius:999px;transition:background .2s,transform .05s}
+.btn-primary{background:#16a34a;color:#fff}.btn-primary:hover{background:#15803d;transform:translateY(-1px)}
+.btn-secondary{background:#e5e7eb;color:#111827}.btn-secondary:hover{background:#d1d5db}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:10px}
+th,td{border:1px solid #e5e7eb;padding:4px 6px;text-align:left}th{background:#f3f4f6}.center{text-align:center}
+.timer-box{margin-top:10px;padding:8px 10px;border-radius:10px;background:#fee2e2;display:inline-flex;align-items:center;gap:6px}
+.timer-label{font-size:.85rem;color:#4b5563}.timer-value{font-family:monospace;font-weight:700;color:#b91c1c;font-size:1.1rem}
 </style>
 
 <script type="module">
@@ -82,84 +37,57 @@ const firebaseConfig = {
   messagingSenderId: "499006072662",
   appId: "1:499006072662:web:3001f6700f0268df1b58f7"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // --- konstante i varijable ---
-const ROOM_ID = "glavnaSoba";
-const MAX_ROUNDS = 7;
+const ROOM_ID="glavnaSoba";
+const MAX_ROUNDS=7;
+let currentUser="",currentRound=1,gamePhase="lobby",countdown=0,timerInterval=null;
+let letters="ABCČĆDDŽEFGHIJKLLJMNNJOPRSŠTUVZŽ".split("");
 
-let currentUser = "";
-let currentRound = 1;
-let gamePhase = "lobby"; // lobby | writing | voting
-let countdown = 0;
-let timerInterval = null;
-let letters = "ABCČĆDDŽEFGHIJKLLJMNNJOPRSŠTUVZŽ".split("");
 // --- reference u bazi ---
-const playersRef = ref(db, `rooms/${ROOM_ID}/players`);
-const roundsRef = ref(db, `rooms/${ROOM_ID}/rounds`);
-const scoresRef = ref(db, `rooms/${ROOM_ID}/scores`);
+const playersRef=ref(db,`rooms/${ROOM_ID}/players`);
+const roundsRef=ref(db,`rooms/${ROOM_ID}/rounds`);
 
-const loginScr = document.getElementById("login-screen");
-const gameScr = document.getElementById("game-screen");
-const loginInput = document.getElementById("login-name");
-const loginBtn = document.getElementById("login-btn");
-const welcomeText = document.getElementById("welcome-text");
-const playersBody = document.getElementById("players-body");
-const timerBox = document.getElementById("timer-box");
-const countdownEl = document.getElementById("countdown");
+const loginScr=document.getElementById("login-screen");
+const gameScr=document.getElementById("game-screen");
+const loginInput=document.getElementById("login-name");
+const loginBtn=document.getElementById("login-btn");
+const welcomeText=document.getElementById("welcome-text");
+const playersBody=document.getElementById("players-body");
+const timerBox=document.getElementById("timer-box");
+const countdownEl=document.getElementById("countdown");
 
-// pomoćne funkcije
-function safeKey(str){return (str||"").replace(/[.#$\[\]]/g,"_");}
-function randomLetter(){return letters[Math.floor(Math.random()*letters.length)];}
-function showScreen(scr){ scr==="login"?(loginScr.classList.add("active"),gameScr.classList.remove("active")):(loginScr.classList.remove("active"),gameScr.classList.add("active"));}
+function safeKey(str){return(str||"").replace(/[.#$\[\]]/g,"_")}
+function randomLetter(){return letters[Math.floor(Math.random()*letters.length)]}
+function showScreen(scr){scr==="login"?(loginScr.classList.add("active"),gameScr.classList.remove("active")):(loginScr.classList.remove("active"),gameScr.classList.add("active"))}
 
-// render igrača
 function renderPlayers(players){
  playersBody.innerHTML="";
- if(!players) return;
+ if(!players)return;
  const list=Object.values(players).sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0));
  list.forEach((p,i)=>{
   const tr=document.createElement("tr");
-  tr.innerHTML=`<td class="center">${i+1}</td><td>${p.name}</td>`;
-  const td=document.createElement("td");
-  td.className="center";
-  const btn=document.createElement("button");
-  btn.className="btn btn-primary";
-  btn.textContent=p.ready?"Spreman":"Pokaži znanje";
-  btn.disabled=p.ready||(p.name!==currentUser);
-  btn.style.opacity=p.ready?"0.6":"1";
+  tr.innerHTML=`<td class='center'>${i+1}</td><td>${p.name}</td>`;
+  const td=document.createElement("td");td.className="center";
+  const btn=document.createElement("button");btn.className="btn btn-primary";
+  btn.textContent=p.ready?"Spreman":"Pokaži znanje";btn.disabled=p.ready||(p.name!==currentUser);btn.style.opacity=p.ready?"0.6":"1";
   if(p.name===currentUser&&!p.ready){
-   btn.onclick=async()=>{
-     await set(ref(db,`rooms/${ROOM_ID}/players/${safeKey(p.name)}`),{name:p.name,joinedAt:p.joinedAt||Date.now(),ready:true});
-   };
+    btn.onclick=async()=>{await set(ref(db,`rooms/${ROOM_ID}/players/${safeKey(p.name)}`),{name:p.name,joinedAt:p.joinedAt||Date.now(),ready:true});};
   }
-  td.appendChild(btn); tr.appendChild(td); playersBody.appendChild(tr);
+  td.appendChild(btn);tr.appendChild(td);playersBody.appendChild(tr);
  });
 }
 
-// timer logika
-function startTimer(seconds,label,cb){
- clearInterval(timerInterval); countdown=seconds;
+function startTimer(sec,label,cb){
+ clearInterval(timerInterval);countdown=sec;
  document.querySelector(".timer-label").textContent=label;
- timerBox.style.display="inline-flex";
- updateCountdown();
- timerInterval=setInterval(()=>{
-  countdown--; updateCountdown();
-  if(countdown<=0){clearInterval(timerInterval);cb&&cb();}
- },1000);
+ timerBox.style.display="inline-flex";updateTimer();
+ timerInterval=setInterval(()=>{countdown--;updateTimer();if(countdown<=0){clearInterval(timerInterval);cb&&cb();}},1000);
 }
-function updateCountdown(){
- const m=String(Math.floor(countdown/60)).padStart(2,"0");
- const s=String(countdown%60).padStart(2,"0");
- countdownEl.textContent=`${m}:${s}`;
-}
+function updateTimer(){const m=String(Math.floor(countdown/60)).padStart(2,"0"),s=String(countdown%60).padStart(2,"0");countdownEl.textContent=`${m}:${s}`;}
 
-// faze igre
-function startLobby(){
- gamePhase="lobby"; timerBox.style.display="none";
-}
 function startWriting(letter){
  gamePhase="writing";
  document.getElementById("current-letter").textContent=letter;
@@ -167,167 +95,138 @@ function startWriting(letter){
  document.getElementById("voting-panel").style.display="none";
  startTimer(120,"Preostalo vrijeme:",()=>endWriting());
 }
+async function endWriting(){document.getElementById("game-fields").style.display="none";checkAllAnswers();}
+function checkAllAnswers(){
+ get(ref(db,`rooms/${ROOM_ID}/rounds/round_${currentRound}`)).then(snap=>{
+   const answers=snap.val()||{};const keys=Object.keys(answers);
+   get(playersRef).then(pSnap=>{
+     const total=Object.keys(pSnap.val()||{}).length;
+     if(keys.length===total){startVotingPhase(answers);}
+   });
+ });
+}
+function startVotingPhase(answers){
+ gamePhase="voting";
+ const panel=document.getElementById("voting-panel");
+ panel.style.display="block";
+ panel.innerHTML="<h3>Glasanje o točnosti odgovora</h3><p>Glasaj 👍 ako je odgovor točan, 👎 ako nije (90 %+ = točan).</p>";
 
-async function endWriting(){
- document.getElementById("game-fields").style.display="none";
- startVotingPhase();
+ const cats=['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
+ let html="<table><thead><tr><th>Kategorija</th>";
+ Object.values(answers).forEach(p=>{html+=`<th>${p.name}</th>`;});
+ html+="</tr></thead><tbody>";
+ cats.forEach(cat=>{
+   html+=`<tr><th>${cat.charAt(0).toUpperCase()+cat.slice(1)}</th>`;
+   Object.entries(answers).forEach(([plKey,p])=>{
+     const a=p.answers?.[cat]||"—";
+     html+=`<td><span>${a}</span><br>
+       <button class='vote-btn' data-cat='${cat}' data-player='${plKey}' data-v='yes'>👍</button>
+       <button class='vote-btn' data-cat='${cat}' data-player='${plKey}' data-v='no'>👎</button>
+       <span id='vote_${cat}_${plKey}' style='font-size:.8rem;color:#555'></span>
+     </td>`;
+   });
+   html+="</tr>";
+ });
+ html+="</tbody></table>";
+ panel.innerHTML+=html;
+ panel.querySelectorAll(".vote-btn").forEach(b=>{
+   b.onclick=()=>{
+     const {cat,player,v}=b.dataset;
+     const vr=ref(db,`rooms/${ROOM_ID}/votes/round_${currentRound}/${cat}/${player}/${safeKey(currentUser)}`);
+     set(vr,{vote:v});
+   };
+ });
+ startTimer(30,"Glasanje traje:",()=>endVoting());
+ trackVotes();
 }
 
-function startVotingPhase(){
- gamePhase="voting";
- timerBox.style.display="inline-flex";
- document.querySelector(".timer-label").textContent="Glasanje traje:";
- startTimer(30,"Glasanje traje:",()=>endVoting());
- buildVotingTable();
+function trackVotes(){
+ const votesRef=ref(db,`rooms/${ROOM_ID}/votes/round_${currentRound}`);
+ onValue(votesRef,(snap)=>{
+   const votes=snap.val()||{};
+   const scores={};
+   Object.entries(votes).forEach(([cat,players])=>{
+     Object.entries(players).forEach(([pl,vs])=>{
+       const total=Object.keys(vs).length;
+       const yes=Object.values(vs).filter(v=>v.vote==="yes").length;
+       const percent=total?Math.round((yes/total)*100):0;
+       const el=document.getElementById(`vote_${cat}_${pl}`);
+       if(el) el.textContent=`${percent}%`;
+       if(percent>=90) scores[pl]=(scores[pl]||0)+1;
+     });
+   });
+   updateScores(scores);
+ });
+}
+
+function updateScores(scores){
+ const panel=document.getElementById("voting-panel");
+ let html="<h4>Trenutni bodovi</h4><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
+ Object.entries(scores).forEach(([p,b])=>{html+=`<tr><td>${p}</td><td>${b}</td></tr>`;});
+ html+="</table>";
+ const old=document.getElementById("live-scores"); if(old) old.remove();
+ const d=document.createElement("div");d.id="live-scores";d.innerHTML=html;panel.appendChild(d);
 }
 
 function endVoting(){
- document.getElementById("voting-panel").innerHTML += "<p><b>Runda završena!</b></p>";
+ document.getElementById("voting-panel").innerHTML+="<p><b>Runda završena!</b></p>";
  if(currentRound<MAX_ROUNDS){
    currentRound++;
-   startNewRound();
- }else{
-   showFinalScores();
- }
+   startNextRound();
+ }else showFinal();
 }
 
-function startNewRound(){
- const nextLetter=randomLetter();
+function startNextRound(){
+ const nl=randomLetter();
  document.getElementById("voting-panel").style.display="none";
- startTimer(15,"Nova runda počinje za:",()=>startWriting(nextLetter));
+ startTimer(15,`Runda ${currentRound} počinje za:`,()=>startWriting(nl));
 }
 
-// Firebase listener igrača
+function showFinal(){
+ get(ref(db,`rooms/${ROOM_ID}/votes`)).then(snap=>{
+   const all=snap.val()||{},points={};
+   Object.values(all).forEach(round=>{
+     Object.values(round).forEach(cat=>{
+       Object.entries(cat).forEach(([pl,vs])=>{
+         const tot=Object.keys(vs).length,yes=Object.values(vs).filter(v=>v.vote==="yes").length;
+         if(tot && yes/tot>=.9) points[pl]=(points[pl]||0)+1;
+       });
+     });
+   });
+   const sorted=Object.entries(points).sort((a,b)=>b[1]-a[1]);
+   let html="<h2>Konačni rezultati</h2><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
+   sorted.forEach(([n,b])=>html+=`<tr><td>${n}</td><td>${b}</td></tr>`);html+="</table>";
+   const p=document.getElementById("voting-panel");p.innerHTML=html;p.style.display="block";
+ });
+}
+
+// === sluša igrače ===
 onValue(playersRef,(snap)=>{
- const players=snap.val()||{};
- renderPlayers(players);
- const list=Object.values(players);
- const allReady=list.length>0&&list.every(p=>p.ready);
+ const data=snap.val()||{};renderPlayers(data);
+ const list=Object.values(data);const allReady=list.length>0&&list.every(p=>p.ready);
  if(allReady&&gamePhase==="lobby"){
    startTimer(15,"Igra počinje za:",()=>{
-     const letter=randomLetter();
-     startWriting(letter);
+     const l=randomLetter();startWriting(l);
    });
  }
 });
 
 // login
 loginBtn.onclick=async()=>{
- const name=loginInput.value.trim();
- if(!name){alert("Upiši ime!");return;}
- currentUser=name;
- await set(ref(db,`rooms/${ROOM_ID}/players/${safeKey(name)}`),{name,joinedAt:Date.now(),ready:false});
- welcomeText.textContent=`Dobrodošao, ${name}!`;
- showScreen("game");
+ const n=loginInput.value.trim();if(!n){alert("Upiši ime!");return;}
+ currentUser=n;
+ await set(ref(db,`rooms/${ROOM_ID}/players/${safeKey(n)}`),{name:n,joinedAt:Date.now(),ready:false});
+ welcomeText.textContent=`Dobrodošao, ${n}!`;showScreen("game");
 };
 
 // predaja odgovora
 document.getElementById("submit-answers").onclick=async()=>{
  if(!currentUser){alert("Nisi prijavljen!");return;}
- const a={};
- ["drzava","grad","selo","rijeka","planina","zivotinja","biljka","stvar","boja","zanimanje","ime"].forEach(id=>{
-   a[id]=document.getElementById(id).value.trim();
- });
- await set(ref(db,`rooms/${ROOM_ID}/rounds/round_${currentRound}/${safeKey(currentUser)}`),{
-   name:currentUser,letter:document.getElementById("current-letter").textContent,answers:a,submittedAt:Date.now()
- });
+ const a={};["drzava","grad","selo","rijeka","planina","zivotinja","biljka","stvar","boja","zanimanje","ime"].forEach(id=>a[id]=document.getElementById(id).value.trim());
+ await set(ref(db,`rooms/${ROOM_ID}/rounds/round_${currentRound}/${safeKey(currentUser)}`),
+  {name:currentUser,letter:document.getElementById("current-letter").textContent,answers:a,submittedAt:Date.now()});
  alert("Odgovori poslani!");
 };
-// === GLASANJE I BODOVI ===
-function buildVotingTable(){
- const panel=document.getElementById("voting-panel");
- panel.style.display="block";
- panel.innerHTML="<h3>Glasaj za odgovore</h3><p>👍 = točan · 👎 = netočan</p>";
- get(ref(db,`rooms/${ROOM_ID}/rounds/round_${currentRound}`)).then(snap=>{
-   const data=snap.val()||{};
-   const entries=Object.entries(data);
-   if(!entries.length){panel.innerHTML+="<p>Nema predanih odgovora.</p>";return;}
-   const cats=['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
-   let html="<table><thead><tr><th>Kategorija</th>";
-   entries.forEach(([,v])=>{html+=`<th>${v.name}</th>`;}); html+="</tr></thead><tbody>";
-   cats.forEach(cat=>{
-     html+=`<tr><th>${cat.charAt(0).toUpperCase()+cat.slice(1)}</th>`;
-     entries.forEach(([k,v])=>{
-       const ans=v.answers?.[cat]||"—";
-       html+=`<td><span>${ans}</span><br>
-       <button class='vote-btn' data-player='${k}' data-cat='${cat}' data-v='yes'>👍</button>
-       <button class='vote-btn' data-player='${k}' data-cat='${cat}' data-v='no'>👎</button>
-       <span class='vote-count' id='count_${cat}_${k}' style='font-size:0.8rem;color:#4b5563;'></span>
-       </td>`;
-     });
-     html+="</tr>";
-   });
-   html+="</tbody></table>";
-   panel.innerHTML+=html;
-   // Glasanje handler
-   panel.querySelectorAll(".vote-btn").forEach(btn=>{
-     btn.onclick=()=>castVote(btn.dataset.cat,btn.dataset.player,btn.dataset.v);
-   });
-   watchVotes();
- });
-}
-
-function castVote(cat,player,vote){
- const voteRef=ref(db,`rooms/${ROOM_ID}/votes/round_${currentRound}/${cat}/${player}/${safeKey(currentUser)}`);
- set(voteRef,{vote});
-}
-
-function watchVotes(){
- const votesRef=ref(db,`rooms/${ROOM_ID}/votes/round_${currentRound}`);
- onValue(votesRef,(snap)=>{
-   const votes=snap.val()||{};
-   const resultCounts={};
-   Object.entries(votes).forEach(([cat,ppl])=>{
-     Object.entries(ppl).forEach(([plName,voters])=>{
-       const total=Object.values(voters).length;
-       const yes=Object.values(voters).filter(v=>v.vote==="yes").length;
-       const percent=total?Math.round((yes/total)*100):0;
-       const el=document.getElementById(`count_${cat}_${plName}`);
-       if(el) el.textContent=`${percent}%`;
-       if(percent>=60){ // priznaje se >60%
-          const key=safeKey(plName);
-          resultCounts[key]=(resultCounts[key]||0)+1;
-       }
-     });
-   });
-   // prikaži trenutne bodove
-   showLiveScores(resultCounts);
- });
-}
-
-function showLiveScores(counts){
- let table="<h4>Trenutni bodovi:</h4><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
- Object.entries(counts).forEach(([pl,b])=>{
-   table+=`<tr><td>${pl}</td><td>${b}</td></tr>`;
- });
- table+="</table>";
- document.getElementById("voting-panel").querySelectorAll("h4,table").forEach(e=>e.remove());
- document.getElementById("voting-panel").insertAdjacentHTML("beforeend",table);
-}
-
-function showFinalScores(){
- get(ref(db,`rooms/${ROOM_ID}/votes`)).then(snap=>{
-   const all=snap.val()||{};
-   const points={};
-   Object.values(all).forEach(round=>{
-     Object.values(round).forEach(cat=>{
-       Object.entries(cat).forEach(([plName,voters])=>{
-         const tot=Object.values(voters).length;
-         const yes=Object.values(voters).filter(v=>v.vote==="yes").length;
-         if(tot && yes/tot>=0.6){
-           points[plName]=(points[plName]||0)+1;
-         }
-       });
-     });
-   });
-   let html="<h2>Završni rezultati – 7 rundi</h2><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
-   const sorted=Object.entries(points).sort((a,b)=>b[1]-a[1]);
-   sorted.forEach(([n,b])=>{html+=`<tr><td>${n}</td><td>${b}</td></tr>`;});
-   html+="</table>";
-   const panel=document.getElementById("voting-panel");
-   panel.innerHTML=html;
- });
-}
 </script>
 </head>
 
@@ -340,7 +239,7 @@ function showFinalScores(){
 <div id="login-screen" class="screen active">
 <div class="field"><label for="login-name">Upiši ime:</label><input id="login-name" placeholder="Npr. Marko"></div>
 <button id="login-btn" class="btn btn-primary">Prijavi se</button>
-<p style="font-size:0.85rem;color:#666;margin-top:8px;">Kada se svi prijave i kliknu "Pokaži znanje", igra počinje.</p>
+<p style="font-size:.85rem;color:#666;margin-top:8px;">Kada svi kliknu “Pokaži znanje”, igra počinje.</p>
 </div>
 
 <!-- IGRA -->
@@ -353,10 +252,10 @@ function showFinalScores(){
 <span class="timer-value" id="countdown">00:00</span>
 </div>
 
-<!-- Polja unosa -->
+<!-- Polja -->
 <div id="game-fields" style="display:none;margin-top:12px;">
 <h3>Runda <span id="round-num">1</span> – Slovo: <span id="current-letter" style="font-weight:bold;font-size:1.2rem;">A</span></h3>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
 <div class="field"><label>Država</label><input id="drzava"></div>
 <div class="field"><label>Grad</label><input id="grad"></div>
 <div class="field"><label>Selo</label><input id="selo"></div>
@@ -369,105 +268,10 @@ function showFinalScores(){
 <div class="field"><label>Zanimanje</label><input id="zanimanje"></div>
 <div class="field"><label>Ime</label><input id="ime"></div>
 </div>
-<button id="submit-answers" class="btn btn-primary" style="margin-top:10px;width:100%;">Predaj odgovore</button>
+<button id="submit-answers" class="btn btn-primary" style="margin-top:10px;width:100%">Predaj odgovore</button>
 </div>
 
-// === NOVI DIO — GLASANJE I ZBRAJANJE BODOVA ===
-
-// pokreće se automatski kada svi igrači pošalju odgovore
-onValue(ref(db, `rooms/${ROOM_ID}/rounds/round_${currentRound}`), (snap) => {
-  const answers = snap.val() || {};
-  const totalPlayers = Object.keys(answers).length;
-
-  // provjeri je li svatko poslao odgovore
-  get(playersRef).then(pSnap => {
-    const players = pSnap.val() || {};
-    if (Object.keys(players).length === totalPlayers && totalPlayers > 0 && gamePhase === "writing") {
-      // svi poslali – prikazi tablicu glasanja
-      startVotingPhase(answers);
-    }
-  });
-});
-
-function startVotingPhase(answers) {
-  gamePhase = "voting";
-  document.getElementById("game-fields").style.display = "none";
-  const panel = document.getElementById("voting-panel");
-  panel.style.display = "block";
-  panel.innerHTML = "<h3>Glasanje o točnosti odgovora</h3><p>Glasaj 👍 ako je odgovor točan, 👎 ako nije.</p>";
-
-  const categories = ['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
-  let html = "<table><thead><tr><th>Kategorija</th>";
-  Object.values(answers).forEach(p => { html += `<th>${p.name}</th>`; });
-  html += "</tr></thead><tbody>";
-
-  categories.forEach(cat => {
-    html += `<tr><th>${cat.charAt(0).toUpperCase() + cat.slice(1)}</th>`;
-    Object.entries(answers).forEach(([plKey, p]) => {
-      const ans = p.answers?.[cat] || "—";
-      html += `<td>
-        <span>${ans}</span><br>
-        <button class="vote-btn" data-cat="${cat}" data-player="${plKey}" data-vote="yes">👍</button>
-        <button class="vote-btn" data-cat="${cat}" data-player="${plKey}" data-vote="no">👎</button>
-        <span id="vote_${cat}_${plKey}" style="font-size:0.8rem;color:#555;"></span>
-      </td>`;
-    });
-    html += "</tr>";
-  });
-  html += "</tbody></table>";
-  panel.innerHTML += html;
-
-  panel.querySelectorAll(".vote-btn").forEach(btn => {
-    btn.onclick = () => {
-      const { cat, player, vote } = btn.dataset;
-      const voteRef = ref(db, `rooms/${ROOM_ID}/votes/round_${currentRound}/${cat}/${player}/${safeKey(currentUser)}`);
-      set(voteRef, { vote });
-    };
-  });
-
-  // prati glasove u realnom vremenu
-  trackVoting(categories, answers);
-}
-
-function trackVoting(categories, answers) {
-  const votesRef = ref(db, `rooms/${ROOM_ID}/votes/round_${currentRound}`);
-  onValue(votesRef, (snap) => {
-    const votes = snap.val() || {};
-    const scores = {}; // privremeni zbroj
-    Object.entries(votes).forEach(([cat, players]) => {
-      Object.entries(players).forEach(([player, votings]) => {
-        const total = Object.keys(votings).length;
-        const yesCount = Object.values(votings).filter(v => v.vote === "yes").length;
-        const percent = total ? Math.round((yesCount / total) * 100) : 0;
-        const el = document.getElementById(`vote_${cat}_${player}`);
-        if (el) el.textContent = `${percent}%`;
-
-        // ako 90% ili više glasova za — bod
-        if (percent >= 90) {
-          scores[player] = (scores[player] || 0) + 1;
-        }
-      });
-    });
-
-    showScoresTable(scores);
-  });
-}
-
-function showScoresTable(scores) {
-  const panel = document.getElementById("voting-panel");
-  let html = "<h4>Trenutni bodovi</h4><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
-  Object.entries(scores).forEach(([p, pts]) => { html += `<tr><td>${p}</td><td>${pts}</td></tr>`; });
-  html += "</table>";
-
-  const old = panel.querySelector("#live-scores");
-  if (old) old.remove();
-
-  const div = document.createElement("div");
-  div.id = "live-scores";
-  div.innerHTML = html;
-  panel.appendChild(div);
-}
-
+<div id="voting-panel" style="display:none;margin-top:16px;"></div>
 </div>
 </div>
 </body>
