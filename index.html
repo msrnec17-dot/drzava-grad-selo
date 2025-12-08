@@ -372,8 +372,102 @@ function showFinalScores(){
 <button id="submit-answers" class="btn btn-primary" style="margin-top:10px;width:100%;">Predaj odgovore</button>
 </div>
 
-<!-- Glasanje i rezultati -->
-<div id="voting-panel" style="display:none;margin-top:16px;"></div>
+// === NOVI DIO — GLASANJE I ZBRAJANJE BODOVA ===
+
+// pokreće se automatski kada svi igrači pošalju odgovore
+onValue(ref(db, `rooms/${ROOM_ID}/rounds/round_${currentRound}`), (snap) => {
+  const answers = snap.val() || {};
+  const totalPlayers = Object.keys(answers).length;
+
+  // provjeri je li svatko poslao odgovore
+  get(playersRef).then(pSnap => {
+    const players = pSnap.val() || {};
+    if (Object.keys(players).length === totalPlayers && totalPlayers > 0 && gamePhase === "writing") {
+      // svi poslali – prikazi tablicu glasanja
+      startVotingPhase(answers);
+    }
+  });
+});
+
+function startVotingPhase(answers) {
+  gamePhase = "voting";
+  document.getElementById("game-fields").style.display = "none";
+  const panel = document.getElementById("voting-panel");
+  panel.style.display = "block";
+  panel.innerHTML = "<h3>Glasanje o točnosti odgovora</h3><p>Glasaj 👍 ako je odgovor točan, 👎 ako nije.</p>";
+
+  const categories = ['drzava','grad','selo','rijeka','planina','zivotinja','biljka','stvar','boja','zanimanje','ime'];
+  let html = "<table><thead><tr><th>Kategorija</th>";
+  Object.values(answers).forEach(p => { html += `<th>${p.name}</th>`; });
+  html += "</tr></thead><tbody>";
+
+  categories.forEach(cat => {
+    html += `<tr><th>${cat.charAt(0).toUpperCase() + cat.slice(1)}</th>`;
+    Object.entries(answers).forEach(([plKey, p]) => {
+      const ans = p.answers?.[cat] || "—";
+      html += `<td>
+        <span>${ans}</span><br>
+        <button class="vote-btn" data-cat="${cat}" data-player="${plKey}" data-vote="yes">👍</button>
+        <button class="vote-btn" data-cat="${cat}" data-player="${plKey}" data-vote="no">👎</button>
+        <span id="vote_${cat}_${plKey}" style="font-size:0.8rem;color:#555;"></span>
+      </td>`;
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  panel.innerHTML += html;
+
+  panel.querySelectorAll(".vote-btn").forEach(btn => {
+    btn.onclick = () => {
+      const { cat, player, vote } = btn.dataset;
+      const voteRef = ref(db, `rooms/${ROOM_ID}/votes/round_${currentRound}/${cat}/${player}/${safeKey(currentUser)}`);
+      set(voteRef, { vote });
+    };
+  });
+
+  // prati glasove u realnom vremenu
+  trackVoting(categories, answers);
+}
+
+function trackVoting(categories, answers) {
+  const votesRef = ref(db, `rooms/${ROOM_ID}/votes/round_${currentRound}`);
+  onValue(votesRef, (snap) => {
+    const votes = snap.val() || {};
+    const scores = {}; // privremeni zbroj
+    Object.entries(votes).forEach(([cat, players]) => {
+      Object.entries(players).forEach(([player, votings]) => {
+        const total = Object.keys(votings).length;
+        const yesCount = Object.values(votings).filter(v => v.vote === "yes").length;
+        const percent = total ? Math.round((yesCount / total) * 100) : 0;
+        const el = document.getElementById(`vote_${cat}_${player}`);
+        if (el) el.textContent = `${percent}%`;
+
+        // ako 90% ili više glasova za — bod
+        if (percent >= 90) {
+          scores[player] = (scores[player] || 0) + 1;
+        }
+      });
+    });
+
+    showScoresTable(scores);
+  });
+}
+
+function showScoresTable(scores) {
+  const panel = document.getElementById("voting-panel");
+  let html = "<h4>Trenutni bodovi</h4><table><tr><th>Igrač</th><th>Bodovi</th></tr>";
+  Object.entries(scores).forEach(([p, pts]) => { html += `<tr><td>${p}</td><td>${pts}</td></tr>`; });
+  html += "</table>";
+
+  const old = panel.querySelector("#live-scores");
+  if (old) old.remove();
+
+  const div = document.createElement("div");
+  div.id = "live-scores";
+  div.innerHTML = html;
+  panel.appendChild(div);
+}
+
 </div>
 </div>
 </body>
