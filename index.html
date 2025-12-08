@@ -1,652 +1,565 @@
 <!DOCTYPE html>
 <html lang="hr">
 <head>
-    <meta charset="UTF-8" />
-    <title>Evidencija slobodnih dana + prekovremeni</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Firebase compat SDK -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📅 Slobodni dani & PK sati</title>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
     <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: Arial, sans-serif;
-            background: #f3f4f6;
-            color: #111827;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #e2e8f0 100%);
+            min-height: 100vh;
             padding: 20px;
+            color: var(--text);
         }
-        h1, h2, h3 { margin-bottom: 10px; }
-        .app {
-            max-width: 1000px;
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        .section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-        }
-        label {
-            display: block;
-            margin-bottom: 4px;
-            font-size: 0.9rem;
-        }
-        input, select, button, textarea {
-            font: inherit;
-        }
-        input[type="text"],
-        input[type="date"],
-        input[type="number"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 6px 8px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            border: 1px solid #d1d5db;
-        }
-        textarea { resize: vertical; min-height: 60px; }
-        button {
-            padding: 8px 14px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        button:hover {
-            background: #1d4ed8;
-        }
-        button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .col-3 { flex: 1 1 150px; }
-        .col-4 { flex: 1 1 200px; }
-        .col-6 { flex: 1 1 300px; }
-        .col-12 { flex: 1 1 100%; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-            font-size: 0.9rem;
-        }
-        th, td {
-            border: 1px solid #e5e7eb;
-            padding: 6px 8px;
-            text-align: left;
-        }
-        th {
-            background: #f9fafb;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-        }
-        .badge-ok { background: #bbf7d0; color: #065f46; }
-        .badge-low { background: #fee2e2; color: #991b1b; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .login-box {
+        .login-card {
             max-width: 400px;
-            margin: 60px auto;
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin: 100px auto 0;
+            background: var(--card);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            text-align: center;
         }
-        .muted { color: #6b7280; font-size: 0.85rem; }
-        .header-line {
+        .app-container {
+            display: none;
+            background: var(--card);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            margin-top: 20px;
+        }
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
         }
-        .logout {
-            background: #ef4444;
+        .user-info h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
         }
-        .logout:hover {
-            background: #b91c1c;
+        .user-info .username {
+            font-size: 1.1em;
+            font-weight: 600;
         }
-        .summary {
-            background: #f0f9ff;
-            border: 1px solid #0ea5e9;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 12px;
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
         }
-        .overtime-calc {
-            background: #ecfdf5;
+        .logout-btn:hover { background: #dc2626; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-number { font-size: 2.5em; font-weight: bold; }
+        .stat-label { font-size: 0.95em; opacity: 0.9; }
+        .section {
+            background: var(--card);
+            margin-bottom: 25px;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+        input, select, textarea {
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.2s;
+            background: #fafbff;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        textarea { resize: vertical; min-height: 70px; }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+        .calc-info {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
             border: 1px solid #10b981;
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 4px;
-            font-size: 0.85rem;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-weight: 500;
         }
-        .loading { opacity: 0.6; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            font-size: 0.9em;
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            background: #fafbff;
+        }
+        tr:hover td { background: #f1f5f9; }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <!-- LOGIN -->
+        <div id="loginCard" class="login-card">
+            <h1>📅 Slobodni dani</h1>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Unesi svoje korisničko ime</p>
+            <div class="form-group" style="max-width: 300px; margin: 0 auto;">
+                <label>Korisničko ime</label>
+                <input type="text" id="usernameInput" placeholder="npr. marko" />
+                <button class="btn" id="loginBtn">Ulogiraj se</button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85em; margin-top: 20px;">
+                Sigurno • Bez lozinke • Samo tvoji podaci
+            </p>
+        </div>
 
-<div id="login-screen" class="login-box">
-    <h1>📅 Evidencija slobodnih dana</h1>
-    <p style="margin: 10px 0;">Prijava s korisničkim imenom (bez lozinke).</p>
-    <label for="login-username">Korisničko ime</label>
-    <input type="text" id="login-username" placeholder="npr. marko" />
-    <button id="login-btn">Prijava</button>
-    <p class="muted" style="margin-top:8px;">
-        Svaki korisnik vidi samo svoje slobodne dane + prekovremene sate.
-    </p>
-</div>
+        <!-- APP -->
+        <div id="appContainer" class="app-container">
+            <div class="header">
+                <div class="user-info">
+                    <h1>📊 Tvoja evidencija</h1>
+                    <div class="username" id="userDisplay"></div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">🚪 Odjava</button>
+            </div>
 
-<div id="app" class="app" style="display:none;">
-    <div class="header-line">
-        <div>
-            <h1>📅 Evidencija slobodnih dana</h1>
-            <p class="muted">Prijavljen kao: <span id="current-user-label"></span></p>
-            <div id="total-summary" class="summary" style="display:none;">
-                <strong>Ukupno preostalo:</strong> <span id="total-days"></span> dana
+            <!-- STATS -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalDays">0.0</div>
+                    <div class="stat-label">Preostalih dana</div>
+                </div>
+            </div>
+
+            <!-- PREKOVREMENI -->
+            <div class="section">
+                <h2>⏰ Prekovremeni sati</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">
+                    1 sat PK = 1.6 sati slobodnog • 8 sati = 1 dan
+                </p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Datum rada</label>
+                        <input type="date" id="otDate">
+                    </div>
+                    <div class="form-group">
+                        <label>PK sati</label>
+                        <input type="number" id="otHours" step="0.25" placeholder="2.5">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Napomena</label>
+                        <textarea id="otNote" placeholder="Što si radio..."></textarea>
+                    </div>
+                </div>
+                <div id="otCalc" class="calc-info" style="display: none;">
+                    <strong>Rezultat:</strong> <span id="calcHours">0</span> PK sati = 
+                    <span id="calcFree">0</span> slobodnih sati = <span id="calcDays">0</span> dana
+                </div>
+                <button class="btn" id="addOtBtn">➕ Dodaj PK sate</button>
+            </div>
+
+            <!-- ZARADJENI -->
+            <div class="section">
+                <h2>💰 Zarađeni dani</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Datum zarade</label>
+                        <input type="date" id="earnedDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Vrsta</label>
+                        <select id="earnedType">
+                            <option value="PK">Prekovremeni</option>
+                            <option value="godisnji">Godišnji</option>
+                            <option value="plaćeni">Plaćeni dopust</option>
+                            <option value="ostalo">Ostalo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Dani</label>
+                        <input type="number" id="earnedDays" step="0.1" placeholder="1.6">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Napomena</label>
+                        <textarea id="earnedNote" placeholder="Napomena..."></textarea>
+                    </div>
+                </div>
+                <button class="btn" id="addEarnedBtn">➕ Dodaj zaradu</button>
+            </div>
+
+            <!-- KORISTENJE -->
+            <div class="section">
+                <h2>📅 Korištenje dana</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Od datuma</label>
+                        <input type="date" id="useFrom">
+                    </div>
+                    <div class="form-group">
+                        <label>Do datuma</label>
+                        <input type="date" id="useTo">
+                    </div>
+                    <div class="form-group">
+                        <label>Broj dana</label>
+                        <input type="number" id="useDays" step="0.1" placeholder="1.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Iz unosa</label>
+                        <select id="useSource">
+                            <option value="">Odaberi...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Razlog</label>
+                        <textarea id="useNote" placeholder="Zašto koristiš..."></textarea>
+                    </div>
+                </div>
+                <button class="btn" id="addUseBtn" disabled>➕ Dodaj korištenje</button>
+            </div>
+
+            <!-- TABLICE -->
+            <div class="section">
+                <h2>📋 Pregled</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: var(--success);">✅ Zarađeno</h3>
+                        <table id="earnedTable">
+                            <thead><tr><th>Datum</th><th>Vrsta</th><th>Ukupno</th><th>Preostalo</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: var(--warning);">📤 Iskorišteno</h3>
+                        <table id="usedTable">
+                            <thead><tr><th>Od-Do</th><th>Dani</th><th>Iz unosa</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-        <button id="logout-btn" class="logout">Odjava</button>
     </div>
 
-    <!-- PREKOVREMENI SATI -->
-    <div class="section">
-        <h2>⏰ Prekovremeni sati</h2>
-        <p class="muted">1 sat prekovremena = 1.6 sati slobodnog. 8 sati slobodnog = 1 dan.</p>
+    <script>
+        // Firebase
+        const config = {
+            apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
+            authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
+            databaseURL: "https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "drzava-grad-selo-8d986",
+            storageBucket: "drzava-grad-selo-8d986.firebasestorage.app",
+            messagingSenderId: "499006072662",
+            appId: "1:499006072662:web:3001f6700f0268df1b58f7"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.database();
 
-        <div class="row">
-            <div class="col-3">
-                <label for="overtime-date">Datum rada</label>
-                <input type="date" id="overtime-date" />
-            </div>
-            <div class="col-3">
-                <label for="overtime-hours">Prekovremeni sati</label>
-                <input type="number" id="overtime-hours" min="0" step="0.25" placeholder="npr. 2.5" />
-            </div>
-            <div class="col-6">
-                <label for="overtime-note">Napomena</label>
-                <textarea id="overtime-note" placeholder="npr. subota na projektu X"></textarea>
-            </div>
-            <div class="col-12">
-                <button id="add-overtime-btn">Dodaj prekovremene sate</button>
-            </div>
-        </div>
-        <div id="overtime-calc" class="overtime-calc" style="display:none;">
-            <strong>Računica:</strong> <span id="calc-input"></span> sati × 1.6 = <span id="calc-free"></span> sati slobodnog
-            (<span id="calc-days"></span> dana)
-        </div>
+        // State
+        let currentUser = null;
+        let earnedData = {};
 
-        <h3>Popis prekovremenih sati</h3>
-        <table id="overtime-table">
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Sati PK</th>
-                    <th>Slobodno sati</th>
-                    <th>Dana ekvivalent</th>
-                    <th>Napomena</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+        // DOM
+        const loginCard = document.getElementById('loginCard');
+        const appContainer = document.getElementById('appContainer');
+        const usernameInput = document.getElementById('usernameInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userDisplay = document.getElementById('userDisplay');
+        const totalDays = document.getElementById('totalDays');
+        const earnedTable = document.querySelector('#earnedTable tbody');
+        const usedTable = document.querySelector('#usedTable tbody');
+        const useSource = document.getElementById('useSource');
+        const addUseBtn = document.getElementById('addUseBtn');
 
-    <!-- ZARAĐENI SLOBODNI DANI -->
-    <div class="section">
-        <h2>📈 Zarađeni slobodni dani</h2>
-        <p class="muted">Iz prekovremenih sati ili direktno dodani (godišnji, plaćeni dopust...).</p>
+        // Overtime
+        const otHours = document.getElementById('otHours');
+        const otCalc = document.getElementById('otCalc');
+        const calcHours = document.getElementById('calcHours');
+        const calcFree = document.getElementById('calcFree');
+        const calcDays = document.getElementById('calcDays');
 
-        <div class="row">
-            <div class="col-3">
-                <label for="earned-date">Datum (kada si zaradio)</label>
-                <input type="date" id="earned-date" />
-            </div>
-            <div class="col-3">
-                <label for="earned-type">Vrsta</label>
-                <select id="earned-type">
-                    <option value="prekovremeni">Iz prekovremenih sati ✓</option>
-                    <option value="godišnji">Godišnji odmor</option>
-                    <option value="plaćeni dopust">Plaćeni dopust</option>
-                    <option value="slobodan dan">Slobodan dan</option>
-                    <option value="ostalo">Ostalo</option>
-                </select>
-            </div>
-            <div class="col-3">
-                <label for="earned-days">Broj dana</label>
-                <input type="number" id="earned-days" min="0" step="0.1" placeholder="npr. 1.6 ili 3.2" />
-            </div>
-            <div class="col-3">
-                <label for="earned-hours">ili sati</label>
-                <input type="number" id="earned-hours" min="0" step="0.1" placeholder="npr. 12.8" />
-            </div>
-            <div class="col-12">
-                <label for="earned-note">Napomena</label>
-                <textarea id="earned-note" placeholder="npr. 3 dana + 1.6h iz prekovremenih"></textarea>
-            </div>
-            <div class="col-12">
-                <button id="add-earned-btn">Dodaj zarađene dane</button>
-            </div>
-        </div>
+        const PK_FACTOR = 1.6;
+        const HOURS_DAY = 8;
 
-        <h3>Popis zarađenih dana</h3>
-        <table id="earned-table">
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Vrsta</th>
-                    <th>Ukupno dana</th>
-                    <th>Preostalo</th>
-                    <th>Napomena</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- KORIŠTENJE -->
-    <div class="section">
-        <h2>📅 Korištenje slobodnih dana</h2>
-        <div class="row">
-            <div class="col-3">
-                <label for="use-from">Od datuma</label>
-                <input type="date" id="use-from" />
-            </div>
-            <div class="col-3">
-                <label for="use-to">Do datuma</label>
-                <input type="date" id="use-to" />
-            </div>
-            <div class="col-3">
-                <label for="use-days">Broj dana</label>
-                <input type="number" id="use-days" min="0" step="0.1" placeholder="npr. 1.6" />
-            </div>
-            <div class="col-3">
-                <label for="use-source">Skidaj sa unosa</label>
-                <select id="use-source"></select>
-            </div>
-            <div class="col-12">
-                <label for="use-note">Napomena</label>
-                <textarea id="use-note" placeholder="npr. bolovanje, privatne obaveze"></textarea>
-            </div>
-            <div class="col-12">
-                <button id="add-use-btn">Dodaj korištenje</button>
-            </div>
-        </div>
-
-        <h3>Popis korištenja</h3>
-        <table id="used-table">
-            <thead>
-                <tr>
-                    <th>Od</th>
-                    <th>Do</th>
-                    <th>Broj dana</th>
-                    <th>Iz unosa</th>
-                    <th>Napomena</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    // === Firebase config (tvoj projekt) ===
-const firebaseConfig = {
-  apiKey: "AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
-  authDomain: "drzava-grad-selo-8d986.firebaseapp.com",
-  databaseURL: "https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "drzava-grad-selo-8d986",
-  storageBucket: "drzava-grad-selo-8d986.firebasestorage.app",
-  messagingSenderId: "499006072662",
-  appId: "1:499006072662:web:3001f6700f0268df1b58f7"
-};
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // === Konstantne ===
-    const OVERTIME_FACTOR = 1.6;  // 1 PK sat = 1.6 slobodnih sati
-    const HOURS_PER_DAY = 8;      // 1 dan = 8 sati
-
-    // === DOM elementi ===
-    const loginScreen = document.getElementById('login-screen');
-    const appDiv = document.getElementById('app');
-    const loginUsernameInput = document.getElementById('login-username');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const currentUserLabel = document.getElementById('current-user-label');
-    const totalSummary = document.getElementById('total-summary');
-    const totalDaysSpan = document.getElementById('total-days');
-
-    // Overtime
-    const overtimeDateInput = document.getElementById('overtime-date');
-    const overtimeHoursInput = document.getElementById('overtime-hours');
-    const overtimeNoteInput = document.getElementById('overtime-note');
-    const addOvertimeBtn = document.getElementById('add-overtime-btn');
-    const overtimeCalcDiv = document.getElementById('overtime-calc');
-    const calcInputSpan = document.getElementById('calc-input');
-    const calcFreeSpan = document.getElementById('calc-free');
-    const calcDaysSpan = document.getElementById('calc-days');
-    const overtimeTableBody = document.querySelector('#overtime-table tbody');
-
-    // Earned
-    const earnedDateInput = document.getElementById('earned-date');
-    const earnedTypeSelect = document.getElementById('earned-type');
-    const earnedDaysInput = document.getElementById('earned-days');
-    const earnedHoursInput = document.getElementById('earned-hours');
-    const earnedNoteInput = document.getElementById('earned-note');
-    const addEarnedBtn = document.getElementById('add-earned-btn');
-    const earnedTableBody = document.querySelector('#earned-table tbody');
-
-    // Used
-    const useFromInput = document.getElementById('use-from');
-    const useToInput = document.getElementById('use-to');
-    const useDaysInput = document.getElementById('use-days');
-    const useSourceSelect = document.getElementById('use-source');
-    const useNoteInput = document.getElementById('use-note');
-    const addUseBtn = document.getElementById('add-use-btn');
-    const usedTableBody = document.querySelector('#used-table tbody');
-
-    let currentUser = null;
-    let earnedItemsCache = {};
-    let listeners = {};
-
-    // === LOGIN (ISPRAVLJENO) ===
-    loginBtn.addEventListener('click', () => {
-        const username = loginUsernameInput.value.trim().toLowerCase();
-        if (!username) return alert('Upiši korisničko ime.');
-        
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Povezujem...';
-        
-        // Čekaj da se korisnik stavi u Firebase PRIJE showAppForUser
-        db.ref('vacationApp/users/' + username).set({
-            username, 
-            createdAt: Date.now()
-        }).then(() => {
-            localStorage.setItem('vacation_username', username);
-            showAppForUser(username);
-        }).catch((err) => {
-            console.error('Login error:', err);
-            alert('Greška pri prijavi. Provjeri internet konekciju.');
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Prijava';
-        });
-    });
-
-    function logout() {
-        currentUser = null;
-        localStorage.removeItem('vacation_username');
-        
-        // Očisti sve listenere
-        Object.values(listeners).forEach(ref => ref.off());
-        listeners = {};
-        
-        // Reset UI
-        earnedTableBody.innerHTML = '';
-        usedTableBody.innerHTML = '';
-        overtimeTableBody.innerHTML = '';
-        useSourceSelect.innerHTML = '';
-        totalSummary.style.display = 'none';
-        
-        appDiv.style.display = 'none';
-        loginScreen.style.display = 'block';
-        loginUsernameInput.value = '';
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Prijava';
-    }
-
-    logoutBtn.addEventListener('click', logout);
-
-    function showAppForUser(username) {
-        currentUser = username;
-        currentUserLabel.textContent = username;
-        loginScreen.style.display = 'none';
-        appDiv.style.display = 'block';
-        subscribeAll();
-    }
-
-    // === AUTO-LOGIN (ISPRAVLJENO) ===
-    const savedUser = localStorage.getItem('vacation_username');
-    if (savedUser) {
-        db.ref('vacationApp/users/' + savedUser).once('value').then((snap) => {
-            if (snap.exists()) {
-                showAppForUser(savedUser);
-            } else {
-                localStorage.removeItem('vacation_username');
-            }
-        }).catch(() => {
-            localStorage.removeItem('vacation_username');
-        });
-    }
-
-    // === OVERTIME CALCULATOR ===
-    overtimeHoursInput.addEventListener('input', updateOvertimeCalc);
-    function updateOvertimeCalc() {
-        const hours = Number(overtimeHoursInput.value) || 0;
-        const freeHours = hours * OVERTIME_FACTOR;
-        const days = freeHours / HOURS_PER_DAY;
-        
-        calcInputSpan.textContent = hours.toFixed(2);
-        calcFreeSpan.textContent = freeHours.toFixed(1);
-        calcDaysSpan.textContent = days.toFixed(2);
-        
-        overtimeCalcDiv.style.display = hours > 0 ? 'block' : 'none';
-    }
-
-    // === SUBSCRIBE ===
-    function subscribeAll() {
-        subscribeOvertime();
-        subscribeEarned();
-        subscribeUsed();
-    }
-
-    function subscribeOvertime() {
-        const ref = db.ref('vacationApp/overtime/' + currentUser);
-        listeners.overtime = ref.on('value', (snap) => {
-            overtimeTableBody.innerHTML = '';
-            snap.forEach((child) => {
-                const data = child.val();
-                const tr = document.createElement('tr');
-                const freeHours = (data.hours || 0) * OVERTIME_FACTOR;
-                const days = freeHours / HOURS_PER_DAY;
-                
-                tr.innerHTML = `
-                    <td>${data.date || ''}</td>
-                    <td>${(data.hours || 0).toFixed(2)}</td>
-                    <td>${freeHours.toFixed(1)}</td>
-                    <td>${days.toFixed(2)}</td>
-                    <td>${data.note || ''}</td>
-                `;
-                overtimeTableBody.appendChild(tr);
-            });
-        });
-    }
-
-    function subscribeEarned() {
-        const ref = db.ref('vacationApp/earnedDays/' + currentUser);
-        listeners.earned = ref.on('value', (snap) => {
-            earnedTableBody.innerHTML = '';
-            earnedItemsCache = {};
-            let totalRemaining = 0;
+        // LOGIN
+        loginBtn.onclick = () => {
+            const name = usernameInput.value.trim().toLowerCase();
+            if (!name) return alert('Unesi ime!');
             
-            const options = [];
-            snap.forEach((child) => {
-                const id = child.key;
-                const data = child.val();
-                earnedItemsCache[id] = data;
-                
-                const remaining = Number(data.remainingDays || data.days || 0);
-                totalRemaining += remaining;
-                
-                const tr = document.createElement('tr');
-                const badgeClass = remaining <= 0 ? 'badge-low' : 'badge-ok';
-                
-                tr.innerHTML = `
-                    <td>${data.dateEarned || ''}</td>
-                    <td>${data.type || ''}</td>
-                    <td>${Number(data.days || 0).toFixed(2)}</td>
-                    <td><span class="badge ${badgeClass}">${remaining.toFixed(2)}</span></td>
-                    <td>${data.note || ''}</td>
-                `;
-                earnedTableBody.appendChild(tr);
-                
-                options.push({
-                    id, 
-                    label: `${data.dateEarned || ''} – ${data.type || ''} (${remaining.toFixed(2)} preostalo)`, 
-                    remaining
-                });
-            });
+            loginBtn.textContent = 'Učitavam...';
+            loginBtn.disabled = true;
             
-            // Update totals
-            totalDaysSpan.textContent = totalRemaining.toFixed(2);
-            totalSummary.style.display = totalRemaining > 0 ? 'block' : 'none';
-            
-            // Update source select
-            useSourceSelect.innerHTML = '';
-            if (options.length === 0) {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = 'Nema zarađenih dana';
-                useSourceSelect.appendChild(opt);
-                addUseBtn.disabled = true;
-            } else {
-                addUseBtn.disabled = false;
-                options.sort((a,b) => b.remaining - a.remaining).forEach(o => {
-                    const opt = document.createElement('option');
-                    opt.value = o.id;
-                    opt.textContent = o.label;
-                    useSourceSelect.appendChild(opt);
-                });
-            }
-        });
-    }
-
-    function subscribeUsed() {
-        const ref = db.ref('vacationApp/usedDays/' + currentUser);
-        listeners.used = ref.on('value', (snap) => {
-            usedTableBody.innerHTML = '';
-            snap.forEach((child) => {
-                const data = child.val();
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${data.fromDate || ''}</td>
-                    <td>${data.toDate || ''}</td>
-                    <td>${Number(data.days || 0).toFixed(2)}</td>
-                    <td>${data.sourceEarnedLabel || ''}</td>
-                    <td>${data.note || ''}</td>
-                `;
-                usedTableBody.appendChild(tr);
+            db.ref(`vacation/${name}`).set({name, created: Date.now()}).then(() => {
+                currentUser = name;
+                localStorage.setItem('vac_user', name);
+                showApp();
+            }).catch(() => {
+                alert('Greška! Provjeri internet.');
+                loginBtn.textContent = 'Ulogiraj se';
+                loginBtn.disabled = false;
             });
-        });
-    }
+        };
 
-    // === ADD OVERTIME ===
-    addOvertimeBtn.addEventListener('click', () => {
-        if (!currentUser) return;
-        const date = overtimeDateInput.value;
-        const hours = Number(overtimeHoursInput.value);
-        const note = overtimeNoteInput.value.trim();
-        
-        if (!date) return alert('Odaberi datum.');
-        if (!hours || hours <= 0) return alert('Upiši prekovremene sate.');
-        
-        db.ref('vacationApp/overtime/' + currentUser).push({
-            date, hours, note, createdAt: Date.now()
-        }).then(() => {
-            overtimeDateInput.value = '';
-            overtimeHoursInput.value = '';
-            overtimeNoteInput.value = '';
-            updateOvertimeCalc();
-        }).catch(err => alert('Greška: ' + err.message));
-    });
-
-    // === ADD EARNED ===
-    addEarnedBtn.addEventListener('click', () => {
-        if (!currentUser) return;
-        const date = earnedDateInput.value;
-        const type = earnedTypeSelect.value;
-        let days = Number(earnedDaysInput.value);
-        const hours = Number(earnedHoursInput.value);
-        const note = earnedNoteInput.value.trim();
-        
-        if (!date) return alert('Odaberi datum.');
-        if (!days && !hours) return alert('Upiši dane ILI sate.');
-        if (hours) days = hours / HOURS_PER_DAY;
-        
-        db.ref('vacationApp/earnedDays/' + currentUser).push({
-            dateEarned: date,
-            type,
-            days: parseFloat(days.toFixed(2)),
-            remainingDays: parseFloat(days.toFixed(2)),
-            note,
-            createdAt: Date.now()
-        }).then(() => {
-            earnedDateInput.value = '';
-            earnedDaysInput.value = '';
-            earnedHoursInput.value = '';
-            earnedNoteInput.value = '';
-        }).catch(err => alert('Greška: ' + err.message));
-    });
-
-    // === ADD USED ===
-    addUseBtn.addEventListener('click', () => {
-        if (!currentUser) return;
-        const fromDate = useFromInput.value;
-        const toDate = useToInput.value;
-        const days = Number(useDaysInput.value);
-        const sourceId = useSourceSelect.value;
-        const note = useNoteInput.value.trim();
-        
-        if (!fromDate || !toDate) return alert('Odaberi raspon datuma.');
-        if (!days || days <= 0) return alert('Upiši broj dana.');
-        if (!sourceId) return alert('Odaberi zarađeni unos.');
-        
-        const source = earnedItemsCache[sourceId];
-        if (!source) return alert('Odabrani unos više ne postoji.');
-        
-        const remaining = Number(source.remainingDays || source.days || 0);
-        if (days > remaining) {
-            if (!confirm(`Preostalo je samo ${remaining.toFixed(2)} dana na tom unosu. Nastaviti?`)) {
-                return;
-            }
+        // Auto login
+        const saved = localStorage.getItem('vac_user');
+        if (saved) {
+            currentUser = saved;
+            showApp();
         }
-        
-        // Smanji remainingDays (transakcija)
-        const earnedRef = db.ref('vacationApp/earnedDays/' + currentUser + '/' + sourceId + '/remainingDays');
-        earnedRef.transaction(current => {
-            const cur = Number(current || source.days || 0);
-            return Math.max(0, cur - days);
-        });
-        
-        // Dodaj used
-        const sourceLabel = useSourceSelect.selectedOptions[0]?.text || '';
-        db.ref('vacationApp/usedDays/' + currentUser).push({
-            fromDate, 
-            toDate, 
-            days: parseFloat(days.toFixed(2)),
-            sourceEarnedId: sourceId,
-            sourceEarnedLabel: sourceLabel,
-            note, 
-            createdAt: Date.now()
-        }).then(() => {
-            useFromInput.value = '';
-            useToInput.value = '';
-            useDaysInput.value = '';
-            useNoteInput.value = '';
-        }).catch(err => alert('Greška: ' + err.message));
-    });
-</script>
 
+        function showApp() {
+            userDisplay.textContent = currentUser;
+            loginCard.style.display = 'none';
+            appContainer.style.display = 'block';
+            loadData();
+        }
+
+        logoutBtn.onclick = () => {
+            localStorage.removeItem('vac_user');
+            location.reload();
+        };
+
+        // OVERTIME CALC
+        otHours.oninput = () => {
+            const hours = parseFloat(otHours.value) || 0;
+            const free = hours * PK_FACTOR;
+            const days = free / HOURS_DAY;
+            
+            calcHours.textContent = hours.toFixed(1);
+            calcFree.textContent = free.toFixed(1);
+            calcDays.textContent = days.toFixed(2);
+            otCalc.style.display = hours > 0 ? 'block' : 'none';
+        };
+
+        // DATA
+        function loadData() {
+            // Earned
+            db.ref(`vacation/${currentUser}/earned`).on('value', snap => {
+                earnedTable.innerHTML = '';
+                earnedData = {};
+                let total = 0;
+                
+                snap.forEach(child => {
+                    const id = child.key;
+                    const data = child.val();
+                    earnedData[id] = data;
+                    
+                    const rem = parseFloat(data.remaining || data.days || 0);
+                    total += rem;
+                    
+                    const row = `
+                        <tr>
+                            <td>${data.date || ''}</td>
+                            <td>${data.type}</td>
+                            <td>${parseFloat(data.days || 0).toFixed(2)}</td>
+                            <td>
+                                <span class="badge ${rem <= 0 ? 'badge-danger' : 'badge-success'}">
+                                    ${rem.toFixed(2)}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                    earnedTable.innerHTML += row;
+                    
+                    // Source select
+                    const opt = new Option(
+                        `${data.date} - ${data.type} (${rem.toFixed(2)} ostalo)`, 
+                        id
+                    );
+                    useSource.appendChild(opt);
+                });
+                
+                totalDays.textContent = total.toFixed(2);
+                addUseBtn.disabled = Object.keys(earnedData).length === 0;
+            });
+
+            // Used
+            db.ref(`vacation/${currentUser}/used`).on('value', snap => {
+                usedTable.innerHTML = '';
+                snap.forEach(child => {
+                    const data = child.val();
+                    const row = `
+                        <tr>
+                            <td>${data.from} - ${data.to}</td>
+                            <td>${parseFloat(data.days || 0).toFixed(2)}</td>
+                            <td>${data.source || ''}</td>
+                        </tr>
+                    `;
+                    usedTable.innerHTML += row;
+                });
+            });
+        }
+
+        // ADD OVERTIME
+        document.getElementById('addOtBtn').onclick = () => {
+            const date = document.getElementById('otDate').value;
+            const hours = parseFloat(document.getElementById('otHours').value);
+            const note = document.getElementById('otNote').value;
+            
+            if (!date || !hours) return alert('Unesi datum i sate!');
+            
+            db.ref(`vacation/${currentUser}/overtime`).push({
+                date, hours, note, time: Date.now()
+            }).then(() => {
+                document.getElementById('otDate').value = '';
+                document.getElementById('otHours').value = '';
+                document.getElementById('otNote').value = '';
+            });
+        };
+
+        // ADD EARNED
+        document.getElementById('addEarnedBtn').onclick = () => {
+            const date = document.getElementById('earnedDate').value;
+            const type = document.getElementById('earnedType').value;
+            const days = parseFloat(document.getElementById('earnedDays').value);
+            const note = document.getElementById('earnedNote').value;
+            
+            if (!date || !days) return alert('Unesi datum i dane!');
+            
+            db.ref(`vacation/${currentUser}/earned`).push({
+                date, type, days, remaining: days, note, time: Date.now()
+            }).then(() => {
+                document.getElementById('earnedDate').value = '';
+                document.getElementById('earnedDays').value = '';
+                document.getElementById('earnedNote').value = '';
+            });
+        };
+
+        // ADD USED
+        document.getElementById('addUseBtn').onclick = () => {
+            const from = document.getElementById('useFrom').value;
+            const to = document.getElementById('useTo').value;
+            const days = parseFloat(document.getElementById('useDays').value);
+            const sourceId = useSource.value;
+            const note = document.getElementById('useNote').value;
+            
+            if (!from || !to || !days || !sourceId) return alert('Popuni sva polja!');
+            
+            const source = earnedData[sourceId];
+            if (days > (source.remaining || 0)) {
+                return alert('Nemaš dovoljno dana!');
+            }
+            
+            // Update remaining
+            db.ref(`vacation/${currentUser}/earned/${sourceId}/remaining`).transaction(
+                x => parseFloat((x || source.days || 0) - days)
+            );
+            
+            // Add used
+            db.ref(`vacation/${currentUser}/used`).push({
+                from, to, days, source: useSource.selectedOptions[0].text, note, time: Date.now()
+            }).then(() => {
+                document.getElementById('useFrom').value = '';
+                document.getElementById('useTo').value = '';
+                document.getElementById('useDays').value = '';
+                document.getElementById('useNote').value = '';
+            });
+        };
+    </script>
 </body>
 </html>
