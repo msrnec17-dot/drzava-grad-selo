@@ -3,253 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <title>Slobodni dani i PK</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <style>
-    body{font-family:system-ui,sans-serif;padding:20px;background:#f3f4f6;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,-apple-system,sans-serif;background:#f3f4f6;padding:20px;color:#111;}
     .container{max-width:1200px;margin:0 auto;}
     .card{background:#fff;border-radius:16px;padding:24px;margin:20px 0;box-shadow:0 10px 25px rgba(0,0,0,0.1);}
-    input,select{padding:10px;border:1px solid #d1d5db;border-radius:8px;width:100%;margin:5px 0;}
-    button{padding:10px 20px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;}
+    .login-card{max-width:400px;margin:100px auto;text-align:center;}
+    input,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;margin:8px 0;box-sizing:border-box;}
+    input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+    button{padding:12px 24px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:16px;}
     button:hover{background:#1d4ed8;}
     button:disabled{background:#9ca3af;cursor:not-allowed;}
-    table{width:100%;border-collapse:collapse;}
-    th,td{padding:8px;border-bottom:1px solid #e5e7eb;}
-    th{background:#1f2937;color:white;}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;}
-    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin:20px 0;}
-    .stat{background:linear-gradient(135deg,#2563eb,#4f46e5);color:white;padding:15px;border-radius:12px;text-align:center;}
-    /* Flatpickr HR kalendar - CRVENI vikendi i blagdani */
-    .flatpickr-day.weekend{background:#fee2e2;color:#b91c1c;}
-    .flatpickr-day.holiday{background:#fecaca!important;color:#7f1d1d!important;font-weight:700;border:2px solid #b91c1c!important;}
+    .btn-danger{background:#ef4444;}
+    .btn-danger:hover{background:#dc2626;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:20px 0;}
+    .stat{background:linear-gradient(135deg,#2563eb,#4f46e5);color:white;padding:20px;border-radius:12px;text-align:center;}
+    .stat-value{font-size:1.8rem;font-weight:700;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid #e5e7eb;}
+    th{background:#1f2937;color:white;font-weight:600;}
+    tr:hover{background:#f8fafc;}
+    .badge{display:inline-block;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:600;}
+    .badge-ok{background:#dcfce7;color:#166534;}
+    .badge-low{background:#fee2e2;color:#991b1b;}
+    #pkList{max-height:200px;overflow:auto;border:1px solid #d1d5db;border-radius:8px;padding:12px;background:#f9fafb;}
+    .pk-row{display:flex;align-items:center;padding:8px;border-bottom:1px solid #e5e7eb;}
+    .pk-row:last-child{border-bottom:none;}
+    h1{font-size:1.8rem;color:#2563eb;margin-bottom:8px;}
+    h2,h3{margin:0 0 16px 0;color:#2563eb;}
+    label{display:block;margin:8px 0 4px;font-weight:500;color:#374151;}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
   </style>
 </head>
 <body>
 <div class="container">
-  <div id="login" class="card" style="max-width:400px;margin:100px auto;">
-    <h1 style="color:#2563eb;">Slobodni dani & PK</h1>
-    <input id="loginName" placeholder="Korisničko ime (npr. marko)">
+  
+  <!-- LOGIN -->
+  <div id="loginCard" class="card login-card">
+    <h1>Slobodni dani & PK</h1>
+    <p style="color:#6b7280;margin-bottom:24px;">Unesi korisničko ime</p>
+    <input id="loginName" type="text" placeholder="npr. marko.novic">
     <button id="loginBtn">Ulogiraj se</button>
   </div>
 
-  <div id="app" style="display:none;">
-    <div class="card">
-      <h2>Prijavljen kao: <span id="userLabel"></span> <button id="logoutBtn" style="float:right;background:#ef4444;">Odjava</button></h2>
-      
-      <div class="stats">
-        <div class="stat">
-          <div>Preostali dani</div>
-          <div id="statDays">0.00</div>
-        </div>
-        <div class="stat">
-          <div>Preostali PK sati</div>
-          <div id="statPk">0.0</div>
-        </div>
+  <!-- GLAVNA APLIKACIJA -->
+  <div id="appCard" class="card" style="display:none;">
+    <div class="header">
+      <div>
+        <h1>Evidencija</h1>
+        <p style="color:#6b7280;margin:0;">Prijavljen kao: <strong id="userLabel"></strong></p>
       </div>
+      <button id="logoutBtn" class="btn-danger">Odjava</button>
+    </div>
 
-      <!-- DODAJ AKTIVNOST -->
-      <div class="card">
-        <h3>Dodaj aktivnost</h3>
-        <div class="grid">
-          <div><label>Od datuma</label><input type="text" id="actFrom"></div>
-          <div><label>Do datuma</label><input type="text" id="actTo"></div>
-          <div><label>Aktivnost</label><input id="actActivity"></div>
-          <div><label>Dani</label><input type="number" id="actDays" value="0"></div>
-          <div><label>PK sati</label><input type="number" id="actPk" step="0.1" value="0"></div>
-          <button onclick="addActivity()">Dodaj</button>
-        </div>
+    <!-- SALDO -->
+    <div class="stats">
+      <div class="stat">
+        <div style="font-size:14px;opacity:0.9;">Preostali slobodni dani</div>
+        <div class="stat-value" id="statDays">0.00</div>
       </div>
-
-      <!-- PK KORIŠTENJE -->
-      <div class="card">
-        <h3>Korištenje PK sati → 1 dan</h3>
-        <div id="pkList" style="max-height:200px;overflow:auto;border:1px solid #d1d5db;padding:10px;"></div>
-        <div>Označeno: <span id="pkSelected">0.0</span> h</div>
-        <button id="usePkBtn" onclick="usePK()" disabled>Pretvori u 1 dan</button>
-      </div>
-
-      <!-- TABLICE -->
-      <div class="grid">
-        <div class="card">
-          <h3>Aktivnosti</h3>
-          <table id="actTable"><tr><th>Period</th><th>Aktivnost</th><th>Dani</th><th>PK</th><th>Preostalo</th></tr></table>
-        </div>
-        <div class="card">
-          <h3>Log korištenja</h3>
-          <table id="logTable"><tr><th>Vrsta</th><th>Detalj</th></tr></table>
-        </div>
+      <div class="stat">
+        <div style="font-size:14px;opacity:0.9;">Preostali PK sati</div>
+        <div class="stat-value" id="statPk">0.0</div>
       </div>
     </div>
-  </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/hr.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
-
-<script>
-  // HR blagdani 2025
-  const holidays=["2025-01-01","2025-01-06","2025-04-20","2025-04-21","2025-05-01","2025-05-30","2025-08-05","2025-08-15","2025-11-01","2025-12-25","2025-12-26"];
-  
-  function initCalendar(id){
-    flatpickr("#"+id,{
-      locale:"hr",
-      dateFormat:"d.m.Y",
-      onDayCreate:(dObj,dStr,fp,dayElem)=>{
-        let date=dayElem.dateObj;
-        let iso=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
-        if(date.getDay()==0 || date.getDay()==6) dayElem.classList.add("weekend");
-        if(holidays.includes(iso)) dayElem.classList.add("holiday");
-      }
-    });
-  }
-  
-  // Firebase
-  firebase.initializeApp({
-    apiKey:"AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
-    authDomain:"drzava-grad-selo-8d986.firebaseapp.com",
-    databaseURL:"https://drzava-grad-selo-8d986-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId:"drzava-grad-selo-8d986"
-  });
-  const db=firebase.database();
-  
-  let user=null;
-  
-  // Kalendari
-  initCalendar("actFrom");
-  initCalendar("actTo");
-  
-  // Login
-  document.getElementById("loginBtn").onclick=()=>{
-    let name=document.getElementById("loginName").value.trim().toLowerCase();
-    if(!name) return alert("Upiši ime");
-    db.ref("vac/users/"+name).set({name}).then(()=>{
-      user=name;
-      localStorage.setItem("vac_user",name);
-      document.getElementById("login").style.display="none";
-      document.getElementById("app").style.display="block";
-      document.getElementById("userLabel").textContent=name;
-      loadData();
-    });
-  };
-  
-  // Auto-login
-  let saved=localStorage.getItem("vac_user");
-  if(saved){
-    user=saved;
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").style.display="block";
-    document.getElementById("userLabel").textContent=saved;
-    loadData();
-  }
-  
-  function loadData(){
-    db.ref("vac/"+user).on("value",snap=>{
-      let data=snap.val()||{};
-      let acts=data.activities||{};
-      
-      // Stats
-      let totalDays=0,totalPk=0;
-      document.getElementById("actTable").innerHTML="<tr><th>Period</th><th>Aktivnost</th><th>Dani</th><th>PK</th><th>Preostalo</th></tr>";
-      document.getElementById("pkList").innerHTML="";
-      document.getElementById("logTable").innerHTML="<tr><th>Vrsta</th><th>Detalj</th></tr>";
-      
-      Object.entries(acts||{}).forEach(([id,act)=>{
-        let remDays=(act.remainingDays||0).toFixed(2);
-        let remPk=(act.remainingPk||0).toFixed(1);
-        totalDays+=parseFloat(remDays);
-        totalPk+=parseFloat(remPk);
-        
-        // Tablica aktivnosti
-        document.getElementById("actTable").innerHTML+=`
-          <tr>
-            <td>${act.fromDate||""}–${act.toDate||""}</td>
-            <td>${act.activity||""}</td>
-            <td>${(act.baseDays||0).toFixed(2)}</td>
-            <td>${(act.pkHours||0).toFixed(1)}</td>
-            <td>${remDays}d ${remPk}h</td>
-          </tr>`;
-        
-        // PK lista
-        if(parseFloat(remPk)>0){
-          document.getElementById("pkList").innerHTML+=`
-            <label style="display:block;padding:5px;border-bottom:1px solid #eee;">
-              <input type="checkbox" data-id="${id}" data-pk="${remPk}" onchange="updatePK()"> 
-              ${act.fromDate||""}–${act.toDate||""} ${act.activity||""} (${remPk}h)
-            </label>`;
-        }
-      });
-      
-      document.getElementById("statDays").textContent=totalDays.toFixed(2);
-      document.getElementById("statPk").textContent=totalPk.toFixed(1);
-      
-      // Log
-      let logs=data.log||{};
-      Object.values(logs||{}).forEach(log=>{
-        document.getElementById("logTable").innerHTML+=`<tr><td>${log.type}</td><td>${log.detail}</td></tr>`;
-      });
-    });
-  }
-  
-  window.addActivity=()=>{
-    let from=document.getElementById("actFrom").value;
-    let to=document.getElementById("actTo").value;
-    let activity=document.getElementById("actActivity").value;
-    let days=parseFloat(document.getElementById("actDays").value)||0;
-    let pk=parseFloat(document.getElementById("actPk").value)||0;
-    
-    if(!from||!to) return alert("Odaberi datume");
-    if(days==0 && pk==0) return alert("Unesi dane ili PK");
-    
-    db.ref("vac/"+user+"/activities").push({
-      fromDate:from,toDate:to,activity,
-      baseDays:days,pkHours:pk,
-      remainingDays:days,remainingPk:pk
-    });
-    
-    document.getElementById("actFrom").value="";
-    document.getElementById("actTo").value="";
-    document.getElementById("actActivity").value="";
-    document.getElementById("actDays").value="0";
-    document.getElementById("actPk").value="0";
-  };
-  
-  window.updatePK=()=>{
-    let sum=0;
-    document.querySelectorAll("#pkList input:checked").forEach(cb=>sum+=parseFloat(cb.dataset.pk));
-    document.getElementById("pkSelected").textContent=sum.toFixed(1);
-    document.getElementById("usePkBtn").disabled=sum<8;
-  };
-  
-  window.usePK=()=>{
-    let selected=[];
-    document.querySelectorAll("#pkList input:checked").forEach(cb=>{
-      selected.push({id:cb.dataset.id,pk:parseFloat(cb.dataset.pk)});
-    });
-    
-    if(selected.reduce((s,i)=>s+i.pk,0)<8) return alert("Treba min 8h");
-    
-    let toSpend=8;
-    let details=[];
-    
-    selected.forEach(item=>{
-      if(toSpend<=0) return;
-      let willUse=Math.min(item.pk,toSpend);
-      db.ref("vac/"+user+"/activities/"+item.id+"/remainingPk").transaction(v=>Math.max(0,(v||0)-willUse));
-      details.push(willUse+"h");
-      toSpend-=willUse;
-    });
-    
-    db.ref("vac/"+user+"/log").push({
-      type:"PK→dan",
-      detail:"8h PK → 1 dan ("+details.join(", ")+")"
-    });
-  };
-  
-  document.getElementById("logoutBtn").onclick=()=>{
-    localStorage.removeItem("vac_user");
-    location.reload();
-  };
-</script>
-</body>
-</html>
+    <!-- DODAJ AKTIVNOST -->
+    <div>
+      <h2>Dodaj aktivnost</h2>
+      <div class="grid">
+        <div>
+          <label>Od datuma</label>
+          <input type="text" id="actFrom" placeholder="08.12.2025">
+        </div>
+        <div>
+          <label>Do datuma</label>
+          <input type="text" id="actTo" placeholder="08.12.2025">
+        </div>
+        <div>
+          <label>Aktivnost</label>
+          <input type="text" id="actActivity" placeholder="Teren Zagreb">
+        </div>
+        <div>
+          <label>Slobodni dani</label>
+          <input type="number" id="actDays" min="0" step="0.5" value="0">
+        </div>
+        <div>
