@@ -5,10 +5,6 @@
   <title>Slobodni dani i prekovremeni</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Flatpickr CSS -->
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-
   <style>
     :root{
       --bg:#f3f4f6;--card:#ffffff;--primary:#2563eb;--primary-dark:#1d4ed8;
@@ -83,22 +79,6 @@
     .badge-ok{background:#dcfce7;color:#166534;}
     .badge-low{background:#fee2e2;color:#991b1b;}
     .pk-summary{margin-top:8px;font-size:.85rem;color:var(--muted);}
-    .flatpickr-day.weekend {
-      background:#fee2e2;
-      color:#b91c1c;
-    }
-    .flatpickr-day.weekend:hover {
-      background:#fecaca;
-    }
-    .flatpickr-day.holiday {
-      background:#fecaca !important;
-      color:#7f1d1d !important;
-      font-weight:700;
-      border:1px solid #b91c1c;
-    }
-    .flatpickr-day.holiday:hover {
-      background:#fca5a5 !important;
-    }
   </style>
 </head>
 <body>
@@ -141,16 +121,16 @@
     <div style="margin-bottom:20px;">
       <h2>Dodaj aktivnost (dani + PK)</h2>
       <p class="muted" style="margin-bottom:8px;">
-        Raspon “Od – Do” označava koliko je trajala aktivnost na kojoj si zaradio dane i/ili PK sate.
+        Unesi period aktivnosti i koliko si zaradio slobodnih dana i/ili PK sati.
       </p>
       <div class="grid-3">
         <div class="form-group">
           <label>Od datuma</label>
-          <input type="text" id="actFrom" placeholder="dd.mm.gggg">
+          <input type="date" id="actFrom">
         </div>
         <div class="form-group">
           <label>Do datuma</label>
-          <input type="text" id="actTo" placeholder="dd.mm.gggg">
+          <input type="date" id="actTo">
         </div>
         <div class="form-group">
           <label>Aktivnost / opis</label>
@@ -180,11 +160,11 @@
       <div class="grid-3">
         <div class="form-group">
           <label>Od datuma</label>
-          <input type="text" id="useFrom" placeholder="dd.mm.gggg">
+          <input type="date" id="useFrom">
         </div>
         <div class="form-group">
           <label>Do datuma</label>
-          <input type="text" id="useTo" placeholder="dd.mm.gggg">
+          <input type="date" id="useTo">
         </div>
         <div class="form-group">
           <label>Broj dana</label>
@@ -211,11 +191,11 @@
       <h2>Korištenje prekovremenih sati (PK)</h2>
       <p class="muted">
         Označi aktivnosti iz kojih želiš potrošiti PK sate.  
-        Sustav uzima do 8.0 sati za 1 dan; višak ostaje na zadnjoj aktivnosti i vidiš ga u tablici.
+        Sustav troši do 8.0 sati za 1 slobodan dan; višak PK sati na zadnjoj aktivnosti ostaje za kasnije.
       </p>
       <div id="pkList" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#f9fafb;"></div>
       <div class="pk-summary">
-        Označeno PK sati: <span id="pkSelected">0.0</span>  (uzima se do 8.0h za 1 dan)
+        Označeno PK sati: <span id="pkSelected">0.0</span>  (koristit će se do 8.0h za 1 dan)
       </div>
       <button id="usePkBtn" class="btn" disabled>Pretvori označene PK u 1 dan</button>
     </div>
@@ -256,38 +236,11 @@
   </div>
 </div>
 
-<!-- Flatpickr JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/hr.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
 
 <script>
-  const croHolidays2025=[
-    "2025-01-01","2025-01-06","2025-04-20","2025-04-21",
-    "2025-05-01","2025-05-30","2025-06-08","2025-06-22",
-    "2025-08-05","2025-08-15","2025-11-01","2025-11-18",
-    "2025-12-25","2025-12-26"
-  ];
-  function toISO(date){
-    const y=date.getFullYear();
-    const m=String(date.getMonth()+1).padStart(2,"0");
-    const d=String(date.getDate()).padStart(2,"0");
-    return `${y}-${m}-${d}`;
-  }
-  function initHrPicker(sel){
-    flatpickr(sel,{
-      locale:"hr",
-      dateFormat:"d.m.Y",
-      firstDayOfWeek:1,
-      weekNumbers:true,
-      onDayCreate:(dObj,dStr,fp,dayElem)=>{
-        const dt=dayElem.dateObj;
-        const iso=toISO(dt);
-        if(dt.getDay()===0 || dt.getDay()===6) dayElem.classList.add("weekend");
-        if(croHolidays2025.includes(iso)) dayElem.classList.add("holiday");
-      }
-    });
-  }
-
   // Firebase config [web:34][web:61]
   const firebaseConfig={
     apiKey:"AIzaSyAwqBgH3OOfC74k21fln-xd5Q1E6w2gptY",
@@ -337,13 +290,7 @@
   let activities={};
   function to2(n){return Math.round((Number(n)||0)*100)/100;}
 
-  // inicijaliziraj kalendare
-  initHrPicker("#actFrom");
-  initHrPicker("#actTo");
-  initHrPicker("#useFrom");
-  initHrPicker("#useTo");
-
-  // LOGIN – sve pod "vac" i "vac_user"
+  // LOGIN: sve je pod "vac/" i "vac_user"
   loginBtn.onclick=()=>{
     const name=loginName.value.trim().toLowerCase();
     if(!name){alert('Upiši korisničko ime.');return;}
@@ -356,7 +303,7 @@
       })
       .catch(e=>{
         console.error(e);
-        alert('Greška na bazi (provjeri Realtime Database rules).');
+        alert('Greška pri spajanju na bazu (provjeri Realtime Database rules).');
         loginBtn.disabled=false;
       });
   };
@@ -456,6 +403,7 @@
     });
   }
 
+  // Dodaj aktivnost
   addActBtn.onclick=()=>{
     if(!currentUser){alert('Prijavi se.');return;}
     const from=actFrom.value;
@@ -484,6 +432,7 @@
     }).catch(e=>{console.error(e);alert('Greška pri spremanju.');});
   };
 
+  // Korištenje dana
   addUseBtn.onclick=()=>{
     if(!currentUser){alert('Prijavi se.');return;}
     const from=useFrom.value;
@@ -516,6 +465,7 @@
     useFrom.value='';useTo.value='';useDays.value='';useNote.value='';
   };
 
+  // PK zbroj označenih
   function updatePkSelection(){
     let sum=0;
     pkList.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
@@ -526,6 +476,7 @@
     usePkBtn.disabled=sum<8.0;
   }
 
+  // Korištenje PK: troši do 8h, višak ostaje, log po aktivnostima
   usePkBtn.onclick=()=>{
     if(!currentUser){alert('Prijavi se.');return;}
 
